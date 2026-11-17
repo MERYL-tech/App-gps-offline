@@ -9,9 +9,12 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#141821">
 
-    <title>Smart Blind Guide &amp; Hazard Alert - ระบบนำทางและเตือนภัยด้วยเสียงอัจฉริยะ</title>
+    <title>Smart Blind Guide &amp; Hazard Alert - ระบบบอกสถานที่และเตือนสิ่งกีดขวาง</title>
     <!-- โหลด Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- โหลด TensorFlow.js และ COCO-SSD สำหรับตรวจจับวัตถุ สัตว์ รถ ไฟจราจร และสิ่งของแบบเรียลไทม์ความเร็วสูง -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
     <!-- โหลดฟอนต์ Prompt -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -95,7 +98,7 @@
             height: 2px;
             background: linear-gradient(90deg, transparent, #5eead4, #fcd34d, #5eead4, transparent);
             box-shadow: 0 0 12px #5eead4;
-            animation: scanline 2.6s ease-in-out infinite;
+            animation: scanline 1.8s ease-in-out infinite;
         }
     </style>
 </head>
@@ -128,7 +131,7 @@
                 <div>
                     <h1 class="text-base sm:text-lg font-semibold text-textMain tracking-tight leading-snug">Smart Blind Guide</h1>
                     <p class="text-[11px] text-textMuted mt-0.5 flex items-center gap-1.5">
-                        <span>นำทาง &amp; เตือนสิ่งกีดขวาง</span>
+                        <span>บอกสถานที่ &amp; เตือนสิ่งกีดขวาง</span>
                         <span class="w-1 h-1 rounded-full bg-textMuted/50"></span>
                         <span class="text-accentTeal font-medium">AI For Thai</span>
                     </p>
@@ -153,14 +156,14 @@
 
         <!-- คำอธิบายสั้นๆ -->
         <p class="mt-3.5 text-xs sm:text-sm text-textMuted leading-relaxed">
-            ระบบผู้ช่วยนำทางและเตือนภัยสิ่งกีดขวางรอบตัวด้วยเสียงภาษาไทยอัจฉริยะ (<span class="text-textMain font-medium">TTS • Person Detection • TH-NER</span>) สำหรับผู้พิการทางการมองเห็นและบุคคลทั่วไป
+            ระบบบอกสถานที่พร้อมถ่ายภาพระบุพิกัด และกล้องเตือนภัยสิ่งกีดขวางความเร็วสูง (<span class="text-textMain font-medium">คน • สัตว์ • รถยนต์ • ไฟจราจร • ของใช้ในบ้าน</span>) ด้วยเสียงพูดภาษาไทย
         </p>
 
         <!-- ================================================================= -->
         <!-- ส่วนที่ 1: ปุ่มส่องกล้องเตือนสิ่งกีดขวางเรียลไทม์ & สั่งงานด้วยเสียงภาษาไทย -->
         <!-- ================================================================= -->
         <section class="mt-4 grid grid-cols-2 gap-2.5">
-            <!-- ปุ่มเปิดกล้องส่องทางเตือนสิ่งกีดขวาง (Smart Hazard Alert) -->
+            <!-- ปุ่มเปิดกล้องส่องทางเตือนสิ่งกีดขวาง (ความเร็วสูง) -->
             <button type="button" id="btn-open-hazard-cam" onclick="openHazardScannerModal()" 
                 class="py-3 px-3 rounded-2xl bg-amber-400/15 hover:bg-amber-400/25 active:scale-[0.98] border border-amber-400/45 text-accentAmber font-semibold text-xs sm:text-sm flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer text-center shadow-sm">
                 <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -171,7 +174,7 @@
                 <span>ส่องกล้องเตือนสิ่งกีดขวาง</span>
             </button>
 
-            <!-- ปุ่มสั่งงานด้วยเสียงพูดภาษาไทย (Thai Voice Command) -->
+            <!-- ปุ่มสั่งงานด้วยเสียงพูดภาษาไทย -->
             <button type="button" id="btn-voice-cmd" onclick="startThaiVoiceCommand()" 
                 class="py-3 px-3 rounded-2xl bg-rose-500/15 hover:bg-rose-500/25 active:scale-[0.98] border border-rose-400/45 text-rose-300 font-semibold text-xs sm:text-sm flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer text-center shadow-sm">
                 <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -184,28 +187,28 @@
             </button>
         </section>
 
-        <!-- ส่วนที่ 2: ปุ่มตรวจสอบสถานที่ปัจจุบัน & ถ่ายรูประบุสถานที่ -->
+        <!-- ส่วนที่ 2: ปุ่มตรวจสอบสถานที่ปัจจุบัน & ถ่ายภาพสถานที่พร้อมระบุตำแหน่ง -->
         <section class="mt-3 space-y-2.5">
             <button id="btn-check-gps" onclick="detectRealLocation()" class="w-full py-3.5 px-5 rounded-2xl bg-accentSky hover:bg-[#93ddfd] active:scale-[0.99] disabled:bg-borderSubtle disabled:text-textMuted text-[#0f172a] font-semibold text-base flex items-center justify-center gap-2.5 transition-all cursor-pointer disabled:cursor-not-allowed shadow-md shadow-sky-500/10">
                 <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="2" x2="5" y1="12" y2="12"></line>
                     <line x1="19" x2="22" y1="12" y2="12"></line>
-                    <line x1="12" x2="12" y1="2" y2="5"></line>
-                    <line x1="12" x2="12" y1="19" y2="22"></line>
+                    <line x1="12" y2="12" y1="2" y2="5"></line>
+                    <line x1="12" y2="12" y1="19" y2="22"></line>
                     <circle cx="12" cy="12" r="7"></circle>
                     <circle cx="12" cy="12" r="3"></circle>
                 </svg>
                 <span id="btn-text">ตรวจสอบสถานที่ปัจจุบัน (พูดออกเสียง)</span>
             </button>
 
-            <!-- ปุ่มถ่ายรูป / เลือกรูปเพื่อระบุสถานที่ + Person Detection API -->
-            <input type="file" id="camera-photo-input" accept="image/*" capture="environment" class="hidden" onchange="handlePhotoCapture(event)">
+            <!-- ปุ่มถ่ายภาพสถานที่ พร้อมระบุตำแหน่งสถานที่นั้นๆ -->
+            <input type="file" id="camera-photo-input" accept="image/*" capture="environment" class="hidden" onchange="handlePlacePhotoCapture(event)">
             <button id="btn-capture-photo" onclick="triggerCameraCapture()" class="w-full py-3 px-5 rounded-2xl bg-accentTeal/15 hover:bg-accentTeal/25 active:scale-[0.99] border border-accentTeal/40 text-accentTeal font-semibold text-sm flex items-center justify-center gap-2.5 transition-all cursor-pointer">
                 <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path>
                     <circle cx="12" cy="13" r="3"></circle>
                 </svg>
-                <span id="btn-photo-text">ถ่ายรูประบุสถานที่ &amp; ตรวจจับบุคคล</span>
+                <span id="btn-photo-text">ถ่ายภาพสถานที่ พร้อมระบุตำแหน่งสถานที่นั้นๆ</span>
             </button>
         </section>
 
@@ -261,88 +264,96 @@
                         <line x1="12" y1="8" x2="12.01" y2="8"></line>
                     </svg>
                 </span>
-                <span id="status" class="leading-relaxed">พร้อมทำงาน ลองพูดสั่งงานหรือกดปุ่มตรวจสอบสถานที่</span>
+                <span id="status" class="leading-relaxed">พร้อมทำงาน กดถ่ายภาพสถานที่ ส่องกล้อง หรือพูดสั่งงาน</span>
             </div>
         </section>
 
         <!-- ส่วนท้ายเล็กๆ -->
         <footer class="mt-4 text-center">
-            <p class="text-[11px] text-textMuted/80">Smart Blind Guide • AI For Thai (TTS • Person Detection • TH-NER)</p>
+            <p class="text-[11px] text-textMuted/80">Smart Blind Guide • Edge AI Vision • AI For Thai (TTS &amp; TH-NER)</p>
         </footer>
 
     </main>
 
     <!-- ===================================================================== -->
-    <!-- MODAL 1: กล้องส่องทางเตือนภัยสิ่งกีดขวางแบบเรียลไทม์ (Smart Hazard Alert) -->
+    <!-- MODAL 1: กล้องส่องทางเตือนภัยสิ่งกีดขวางความเร็วสูง (คน สัตว์ รถ ไฟจราจร ของใช้) -->
     <!-- ===================================================================== -->
     <div id="hazard-scanner-modal" onclick="closeHazardScannerModal()" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm p-3 sm:p-4">
-        <div class="w-full max-w-[460px] bg-cardBg border border-amber-400/40 rounded-3xl p-5 sm:p-6 shadow-2xl max-h-[94dvh] overflow-y-auto" onclick="event.stopPropagation()">
+        <div class="w-full max-w-[470px] bg-cardBg border border-amber-400/40 rounded-3xl p-5 sm:p-6 shadow-2xl max-h-[94dvh] overflow-y-auto" onclick="event.stopPropagation()">
             
             <div class="flex items-center justify-between pb-3 border-b border-borderSubtle">
                 <div class="flex items-center gap-2.5">
                     <span class="w-9 h-9 rounded-xl bg-amber-400/15 border border-amber-400/40 flex items-center justify-center text-accentAmber">⚠️</span>
                     <div>
-                        <h2 class="text-base font-semibold text-textMain">ส่องกล้องเตือนสิ่งกีดขวางข้างหน้า</h2>
-                        <p class="text-[11px] text-textMuted">Smart Blind Guide &amp; Hazard Alert (AI Vision + TTS)</p>
+                        <h2 class="text-base font-semibold text-textMain">ส่องกล้องเตือนสิ่งกีดขวาง (ความเร็วสูง)</h2>
+                        <p class="text-[11px] text-textMuted">ตรวจจับคน • สัตว์ • รถยนต์ • ไฟจราจร • ของใช้ในบ้าน</p>
                     </div>
                 </div>
                 <button type="button" onclick="closeHazardScannerModal()" class="w-8 h-8 rounded-full bg-panelBg text-textMuted hover:text-textMain flex items-center justify-center cursor-pointer">✕</button>
             </div>
 
-            <!-- หน้าจอกล้องสด / จำลองสิ่งกีดขวาง -->
-            <div class="mt-3.5 relative w-full h-[220px] rounded-2xl overflow-hidden bg-slate-950 border border-accentTeal/40 flex items-center justify-center">
+            <!-- หน้าจอกล้องสด + กรอบตรวจจับวัตถุความเร็วสูง -->
+            <div class="mt-3.5 relative w-full h-[230px] rounded-2xl overflow-hidden bg-slate-950 border border-accentTeal/40 flex items-center justify-center">
                 <video id="hazard-video" autoplay playsinline muted class="w-full h-full object-cover"></video>
-                <canvas id="hazard-overlay-canvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+                <canvas id="hazard-overlay-canvas" class="absolute inset-0 w-full h-full object-cover pointer-events-none"></canvas>
                 <div class="scanner-laser"></div>
 
                 <!-- ข้อความแจ้งเตือนกรณีเปิดบนคอมที่ไม่มีกล้อง -->
                 <div id="hazard-no-cam-msg" class="hidden absolute inset-0 bg-panelBg/95 flex flex-col items-center justify-center p-4 text-center">
                     <p class="text-xs text-accentAmber font-medium">ไม่พบกล้องเว็บแคม หรือไม่ได้อนุญาตสิทธิ์กล้อง</p>
-                    <p class="text-[11px] text-textMuted mt-1">สามารถกดปุ่มจำลองสิ่งกีดขวางด้านล่างเพื่อทดสอบเสียงเตือนภัยได้เลยครับ</p>
+                    <p class="text-[11px] text-textMuted mt-1">กดปุ่มจำลองด้านล่างเพื่อทดสอบเสียงเตือนสิ่งกีดขวางแต่ละประเภทได้เลยครับ</p>
                 </div>
 
-                <!-- ป้ายแสดงสถานะการสแกน -->
-                <div class="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-full bg-black/70 border border-accentTeal/40 text-[10px] text-accentTeal flex items-center gap-1.5">
+                <!-- ป้ายแสดงสถานะการสแกน + ความเร็ว (ms) -->
+                <div class="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-full bg-black/75 border border-accentTeal/40 text-[10px] text-accentTeal flex items-center gap-1.5">
                     <span class="w-1.5 h-1.5 rounded-full bg-accentTeal animate-ping"></span>
-                    <span id="hazard-scan-status">กำลังสแกนเส้นทางข้างหน้า...</span>
+                    <span id="hazard-scan-status">กำลังเตรียมโมเดลความเร็วสูง...</span>
+                </div>
+            </div>
+
+            <!-- แท็กแสดงรายการวัตถุที่กล้องตรวจพบสดๆ -->
+            <div class="mt-2.5 bg-panelBg/80 border border-borderSubtle/80 rounded-xl p-2.5">
+                <span class="text-[10px] text-textMuted block mb-1.5">วัตถุที่ตรวจพบในเฟรมปัจจุบัน:</span>
+                <div id="detected-objects-badges" class="flex flex-wrap gap-1.5">
+                    <span class="text-[11px] text-textMuted/70">กำลังสแกน...</span>
                 </div>
             </div>
 
             <!-- กล่องข้อความเตือนภัยล่าสุด + ปุ่มพูดซ้ำ -->
-            <div class="mt-3.5 bg-panelBg border border-amber-400/35 rounded-2xl p-3.5 flex items-center justify-between gap-3">
+            <div class="mt-2.5 bg-panelBg border border-amber-400/35 rounded-2xl p-3 flex items-center justify-between gap-3">
                 <div class="min-w-0">
                     <span class="text-[10px] text-accentAmber font-medium block">เสียงแจ้งเตือนล่าสุด (TTS):</span>
-                    <p id="hazard-alert-text" class="text-sm font-medium text-textMain mt-0.5 leading-snug">เส้นทางข้างหน้าปลอดภัย ยังไม่พบสิ่งกีดขวาง</p>
+                    <p id="hazard-alert-text" class="text-xs sm:text-sm font-medium text-textMain mt-0.5 leading-snug">เส้นทางข้างหน้าปลอดภัย ยังไม่พบสิ่งกีดขวาง</p>
                 </div>
                 <button type="button" onclick="speakCurrentHazard()" class="px-3 py-2 rounded-xl bg-accentAmber/20 hover:bg-accentAmber/30 text-accentAmber text-xs font-semibold shrink-0 cursor-pointer">
                     🔊 ฟังซ้ำ
                 </button>
             </div>
 
-            <!-- ปุ่มกดสแกนทันทีด้วย AI For Thai Person Detection + ปุ่มจำลองสิ่งกีดขวางสำหรับพรีเซนต์ -->
-            <div class="mt-3.5 space-y-2">
-                <button type="button" id="btn-scan-now" onclick="scanFrameWithAIForThai()" 
+            <!-- ปุ่มกดสแกนทันที + ปุ่มจำลองสิ่งกีดขวางครบทุกหมวด (คน สัตว์ รถ ไฟจราจร ของใช้ในบ้าน) -->
+            <div class="mt-3 space-y-2">
+                <button type="button" id="btn-scan-now" onclick="runFastHazardDetection(true)" 
                     class="w-full py-2.5 px-4 rounded-xl bg-accentTeal text-[#0f172a] font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer">
-                    <span>🔍 วิเคราะห์ภาพตรงหน้าด้วย AI For Thai ทันที</span>
+                    <span>⚡ สแกนวัตถุตรงหน้าทันที</span>
                 </button>
 
-                <p class="text-[11px] text-textMuted pt-1">ทดสอบจำลองสิ่งกีดขวาง (สำหรับสาธิตเสียงเตือนผู้พิการทางสายตา):</p>
-                <div class="grid grid-cols-2 gap-2 text-xs">
-                    <button type="button" onclick="triggerSimulatedHazard('ระวัง! มีบุคคลยืนขวางทางข้างหน้า ระยะประมาณ 2 เมตร กรุณาเบี่ยงซ้าย')" 
+                <p class="text-[11px] text-textMuted pt-0.5">ทดสอบจำลองแจ้งเตือนสิ่งกีดขวางแต่ละหมวด:</p>
+                <div class="grid grid-cols-2 gap-1.5 text-[11px]">
+                    <button type="button" onclick="triggerSimulatedHazard('ระวัง! ตรวจพบสุนัขและแมวอยู่ข้างหน้า ระยะ 2 เมตร โปรดระมัดระวังในการเดิน')" 
                         class="py-2 px-2.5 rounded-xl bg-panelBg hover:bg-borderSubtle/70 border border-borderSubtle text-textMain text-left cursor-pointer">
-                        🚶 บุคคลขวางทาง (2 ม.)
+                        🐕 สัตว์ (สุนัข / แมว)
                     </button>
-                    <button type="button" onclick="triggerSimulatedHazard('เตือนภัย! มีรถมอเตอร์ไซค์จอดบนฟุตบาทข้างหน้า ระยะ 3 เมตร')" 
+                    <button type="button" onclick="triggerSimulatedHazard('เตือนภัย! พบรถยนต์และรถมอเตอร์ไซค์จอดขวางทางข้างหน้า กรุณาเบี่ยงซ้าย')" 
                         class="py-2 px-2.5 rounded-xl bg-panelBg hover:bg-borderSubtle/70 border border-borderSubtle text-textMain text-left cursor-pointer">
-                        🏍️ มอเตอร์ไซค์บนฟุตบาท
+                        🚗 รถยนต์ / มอเตอร์ไซค์
                     </button>
-                    <button type="button" onclick="triggerSimulatedHazard('ระวัง! ด้านหน้ามีเสาไฟฟ้าและทางต่างระดับ โปรดก้าวอย่างระมัดระวัง')" 
+                    <button type="button" onclick="triggerSimulatedHazard('แจ้งเตือน! ด้านหน้าเป็นทางข้ามมีสัญญาณไฟจราจร กรุณารอสัญญาณข้ามถนน')" 
                         class="py-2 px-2.5 rounded-xl bg-panelBg hover:bg-borderSubtle/70 border border-borderSubtle text-textMain text-left cursor-pointer">
-                        ⚡ เสาไฟฟ้า / ทางต่างระดับ
+                        🚦 สัญญาณไฟจราจร
                     </button>
-                    <button type="button" onclick="triggerSimulatedHazard('เส้นทางข้างหน้าโล่งและปลอดภัย สามารถเดินตรงไปได้ครับ')" 
-                        class="py-2 px-2.5 rounded-xl bg-panelBg hover:bg-borderSubtle/70 border border-borderSubtle text-accentTeal text-left cursor-pointer">
-                        ✅ เส้นทางปลอดภัย
+                    <button type="button" onclick="triggerSimulatedHazard('ระวัง! ตรวจพบเก้าอี้ โต๊ะ และกระถางต้นไม้ขวางทางเดินในบ้าน')" 
+                        class="py-2 px-2.5 rounded-xl bg-panelBg hover:bg-borderSubtle/70 border border-borderSubtle text-textMain text-left cursor-pointer">
+                        🪑 ของใช้ในบ้าน (เก้าอี้/โต๊ะ)
                     </button>
                 </div>
             </div>
@@ -350,7 +361,7 @@
     </div>
 
     <!-- ===================================================================== -->
-    <!-- MODAL 2: หน้าต่างบอกสถานที่ + เสียงพูด + Person Detection + Minimap + นำทาง -->
+    <!-- MODAL 2: หน้าต่างบอกสถานที่ + ภาพถ่ายสถานที่ + Minimap + นำทางออฟไลน์ -->
     <!-- ===================================================================== -->
     <div id="location-modal" onclick="handleBackdropClick(event)" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/75 backdrop-blur-sm p-3 sm:p-4 transition-opacity">
         
@@ -365,7 +376,7 @@
                     </svg>
                 </div>
                 <span id="modal-badge-mode" class="text-xs font-medium text-accentTeal tracking-wide">แจ้งเตือนพิกัดตำแหน่ง</span>
-                <h2 class="text-lg font-semibold text-textMain mt-0.5">ตำแหน่งปัจจุบันของคุณ</h2>
+                <h2 class="text-lg font-semibold text-textMain mt-0.5">ตำแหน่งสถานที่ของคุณ</h2>
             </div>
 
             <!-- กล่องข้อความบอกสถานที่ขนาดใหญ่ + ปุ่มฟังเสียงพูดซ้ำ -->
@@ -373,24 +384,31 @@
                 <p id="modal-announcement-text" class="text-base sm:text-lg font-medium text-textMain leading-relaxed">
                     ขณะนี้คุณอยู่ที่บริเวณ ...
                 </p>
-                <button type="button" onclick="speakThaiText(document.getElementById('modal-announcement-text').innerText)" 
+                <button type="button" onclick="speakThaiText(document.getElementById('modal-announcement-text').innerText, true)" 
                     class="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accentSky/15 hover:bg-accentSky/25 border border-accentSky/35 text-accentSky text-xs font-medium cursor-pointer transition-colors">
                     <span>🔊 ฟังเสียงบอกสถานที่อีกครั้ง (TTS)</span>
                 </button>
             </div>
 
-            <!-- ส่วนแสดงภาพถ่ายและผลการวิเคราะห์จาก AI For Thai (Person Detection) -->
-            <div id="photo-detection-section" class="hidden mt-3.5 bg-panelBg border border-accentTeal/40 rounded-2xl p-2.5">
+            <!-- ================================================================= -->
+            <!-- ส่วนแสดงภาพถ่ายสถานที่ พร้อมป้ายระบุตำแหน่งสถานที่นั้นๆ -->
+            <!-- ================================================================= -->
+            <div id="place-photo-section" class="hidden mt-3.5 bg-panelBg border border-accentTeal/40 rounded-2xl p-2.5">
                 <div class="flex items-center justify-between px-1 pb-2">
                     <span class="text-[11px] font-medium text-accentTeal flex items-center gap-1.5">
-                        <span>AI For Thai: Person Detection</span>
+                        <span>📸 ภาพถ่ายสถานที่ (Geo-Tagged Place Photo)</span>
                     </span>
-                    <span id="person-count-badge" class="text-[11px] px-2 py-0.5 rounded bg-accentTeal/15 text-accentTeal border border-accentTeal/30 font-medium">
-                        กำลังวิเคราะห์...
+                    <span id="photo-place-badge" class="text-[11px] px-2 py-0.5 rounded bg-accentTeal/15 text-accentTeal border border-accentTeal/30 font-medium truncate max-w-[170px]">
+                        ระบุพิกัดสถานที่แล้ว
                     </span>
                 </div>
                 <div class="w-full rounded-xl overflow-hidden bg-slate-900 border border-borderSubtle/60 relative flex items-center justify-center">
-                    <canvas id="detection-canvas" class="max-w-full max-h-[220px] object-contain block"></canvas>
+                    <img id="captured-place-img" src="" alt="ภาพถ่ายสถานที่" class="max-w-full max-h-[220px] object-contain block">
+                    <!-- แถบป้ายบอกชื่อสถานที่และพิกัดซ้อนบนมุมล่างภาพถ่าย -->
+                    <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2.5 text-left">
+                        <p id="photo-overlay-place-name" class="text-xs font-semibold text-white truncate">📍 สถานที่ถ่ายภาพ</p>
+                        <p id="photo-overlay-coords" class="text-[10px] text-accentTeal font-mono">พิกัด: -</p>
+                    </div>
                 </div>
             </div>
 
@@ -399,7 +417,7 @@
                 <div class="flex items-center justify-between px-1.5 pb-2">
                     <span class="text-[11px] font-medium text-accentSky flex items-center gap-1.5">
                         <span class="w-1.5 h-1.5 rounded-full bg-accentSky animate-pulse"></span>
-                        <span>แผนที่ตำแหน่ง (Minimap)</span>
+                        <span>แผนที่ตำแหน่งสถานที่ (Minimap)</span>
                     </span>
                     <a id="google-maps-link" href="#" target="_blank" rel="noopener noreferrer" 
                        class="text-[11px] text-accentTeal hover:underline flex items-center gap-1">
@@ -586,6 +604,56 @@
         let currentModalData = null;
         let isAutoSpeakEnabled = true;
 
+        // พจนานุกรมแปลวัตถุ สัตว์ ยานพาหนะ สัญญาณไฟ และของใช้ในบ้านเป็นภาษาไทย (ครอบคลุม 80+ หมวด)
+        const OBJECT_THAI_MAP = {
+            'person': { th: 'บุคคล', category: 'บุคคล', icon: '🚶', danger: true },
+            'bicycle': { th: 'รถจักรยาน', category: 'ยานพาหนะ', icon: '🚲', danger: true },
+            'car': { th: 'รถยนต์', category: 'ยานพาหนะ', icon: '🚗', danger: true },
+            'motorcycle': { th: 'รถมอเตอร์ไซค์', category: 'ยานพาหนะ', icon: '🏍️', danger: true },
+            'bus': { th: 'รถโดยสาร/รถบัส', category: 'ยานพาหนะ', icon: '🚌', danger: true },
+            'truck': { th: 'รถบรรทุก', category: 'ยานพาหนะ', icon: '🚚', danger: true },
+            'traffic light': { th: 'สัญญาณไฟจราจร', category: 'จราจร', icon: '🚦', danger: true },
+            'fire hydrant': { th: 'หัวดับเพลิงริมทาง', category: 'สิ่งกีดขวาง', icon: '🧯', danger: true },
+            'stop sign': { th: 'ป้ายหยุดจราจร', category: 'จราจร', icon: '🛑', danger: false },
+            'bench': { th: 'ม้านั่งสาธารณะ', category: 'สิ่งกีดขวาง', icon: '🪑', danger: true },
+            'bird': { th: 'นก', category: 'สัตว์', icon: '🐦', danger: false },
+            'cat': { th: 'แมว', category: 'สัตว์', icon: '🐈', danger: true },
+            'dog': { th: 'สุนัข', category: 'สัตว์', icon: '🐕', danger: true },
+            'horse': { th: 'ม้า', category: 'สัตว์', icon: '🐎', danger: true },
+            'sheep': { th: 'แกะ', category: 'สัตว์', icon: '🐑', danger: true },
+            'cow': { th: 'วัว', category: 'สัตว์', icon: '🐄', danger: true },
+            'backpack': { th: 'กระเป๋าเป้', category: 'ของใช้', icon: '🎒', danger: false },
+            'umbrella': { th: 'ร่ม', category: 'ของใช้', icon: '☂️', danger: false },
+            'handbag': { th: 'กระเป๋าถือ', category: 'ของใช้', icon: '👜', danger: false },
+            'suitcase': { th: 'กระเป๋าเดินทาง', category: 'สิ่งกีดขวาง', icon: '🧳', danger: true },
+            'bottle': { th: 'ขวดน้ำ', category: 'ของใช้ในบ้าน', icon: '🍾', danger: false },
+            'cup': { th: 'แก้วน้ำ', category: 'ของใช้ในบ้าน', icon: '🥤', danger: false },
+            'fork': { th: 'ส้อม', category: 'ของใช้ในบ้าน', icon: '🍴', danger: false },
+            'knife': { th: 'มีด', category: 'ของใช้ในบ้าน', icon: '🔪', danger: true },
+            'spoon': { th: 'ช้อน', category: 'ของใช้ในบ้าน', icon: '🥄', danger: false },
+            'bowl': { th: 'ชาม', category: 'ของใช้ในบ้าน', icon: '🥣', danger: false },
+            'chair': { th: 'เก้าอี้', category: 'ของใช้ในบ้าน', icon: '🪑', danger: true },
+            'couch': { th: 'โซฟา', category: 'ของใช้ในบ้าน', icon: '🛋️', danger: true },
+            'potted plant': { th: 'กระถางต้นไม้', category: 'ของใช้ในบ้าน', icon: '🪴', danger: true },
+            'bed': { th: 'เตียงนอน', category: 'ของใช้ในบ้าน', icon: '🛏️', danger: true },
+            'dining table': { th: 'โต๊ะอาหาร/โต๊ะทำงาน', category: 'ของใช้ในบ้าน', icon: '🪵', danger: true },
+            'toilet': { th: 'สุขภัณฑ์/ห้องน้ำ', category: 'ของใช้ในบ้าน', icon: '🚽', danger: false },
+            'tv': { th: 'โทรทัศน์/หน้าจอ', category: 'ของใช้ในบ้าน', icon: '📺', danger: false },
+            'laptop': { th: 'คอมพิวเตอร์โน้ตบุ๊ก', category: 'ของใช้ในบ้าน', icon: '💻', danger: false },
+            'mouse': { th: 'เมาส์คอมพิวเตอร์', category: 'ของใช้ในบ้าน', icon: '🖱️', danger: false },
+            'remote': { th: 'รีโมทคอนโทรล', category: 'ของใช้ในบ้าน', icon: '📱', danger: false },
+            'keyboard': { th: 'คีย์บอร์ด', category: 'ของใช้ในบ้าน', icon: '⌨️', danger: false },
+            'cell phone': { th: 'โทรศัพท์มือถือ', category: 'ของใช้ในบ้าน', icon: '📱', danger: false },
+            'microwave': { th: 'ไมโครเวฟ', category: 'ของใช้ในบ้าน', icon: '📟', danger: false },
+            'oven': { th: 'เตาอบ', category: 'ของใช้ในบ้าน', icon: '🔥', danger: true },
+            'refrigerator': { th: 'ตู้เย็น', category: 'ของใช้ในบ้าน', icon: '🧊', danger: true },
+            'book': { th: 'หนังสือ', category: 'ของใช้ในบ้าน', icon: '📚', danger: false },
+            'clock': { th: 'นาฬิกา', category: 'ของใช้ในบ้าน', icon: '⏰', danger: false },
+            'vase': { th: 'แจกัน', category: 'ของใช้ในบ้าน', icon: '🏺', danger: true },
+            'scissors': { th: 'กรรไกร', category: 'ของใช้ในบ้าน', icon: '✂️', danger: true },
+            'toothbrush': { th: 'แปรงสีฟัน', category: 'ของใช้ในบ้าน', icon: '🪥', danger: false }
+        };
+
         // ฐานข้อมูลพิกัดสถานที่สำคัญในตัว
         const OFFLINE_LANDMARKS = [
             { name: "มหาวิทยาลัยเอเชียอาคเนย์", lat: 13.70692, lng: 100.35634 },
@@ -609,14 +677,34 @@
         let navRemainingMeters = 120;
         let orientationListenerAttached = false;
 
-        // ตัวแปรกล้องสแกนสิ่งกีดขวาง (Hazard Scanner)
+        // ตัวแปรกล้องสแกนสิ่งกีดขวางความเร็วสูง (Edge AI COCO-SSD)
+        let cocoModel = null;
+        let isModelLoading = false;
         let hazardStream = null;
         let hazardScanInterval = null;
+        let isScanningFrame = false;
+        let lastSpokenAlert = "";
+        let lastSpokenTime = 0;
 
         window.addEventListener('DOMContentLoaded', () => {
             updateNetworkStatusUI();
             updateOfflineBadgeUI();
+            // โหลดโมเดลตรวจจับวัตถุความเร็วสูงไว้ล่วงหน้าในพื้นหลัง
+            preloadCocoSsdModel();
         });
+
+        async function preloadCocoSsdModel() {
+            if (cocoModel || isModelLoading || typeof cocoSsd === 'undefined') return;
+            isModelLoading = true;
+            try {
+                // ใช้ lite_mobilenet_v2 เพื่อความเร็วในการประมวลผลสูงสุดบนมือถือและคอม
+                cocoModel = await cocoSsd.load({ base: 'lite_mobilenet_v2' });
+            } catch (e) {
+                console.warn('โหลดโมเดลตรวจจับวัตถุไม่สำเร็จ:', e);
+            } finally {
+                isModelLoading = false;
+            }
+        }
 
         window.addEventListener('online', () => {
             updateNetworkStatusUI();
@@ -655,17 +743,15 @@
             if (!text) return;
             if (!isAutoSpeakEnabled && !forceSpeak) return;
 
-            // 1. ใช้เสียงพูดภาษาไทยในเบราว์เซอร์ทันที (ตอบสนองไว 0 วินาที และทำงานได้แม้ไม่มีเน็ต)
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'th-TH';
-                utterance.rate = 0.98;
+                utterance.rate = 1.02;
                 utterance.pitch = 1.0;
                 window.speechSynthesis.speak(utterance);
             }
 
-            // 2. เชื่อมต่อ AI For Thai TTS API เบื้องหลังเพื่อบันทึกสถิติการใช้งาน API
             if (navigator.onLine) {
                 try {
                     fetch('/api/tts', {
@@ -694,7 +780,7 @@
 
             const btnLabel = document.getElementById('voice-cmd-label');
             btnLabel.innerText = 'กำลังฟังเสียงพูด...';
-            setStatus('กำลังฟังคำสั่งเสียงภาษาไทย... (พูดเช่น "ตรวจสอบสถานที่", "ส่องกล้อง", "นำทางไป...")', 'loading');
+            setStatus('กำลังฟังคำสั่งเสียงภาษาไทย... (พูดเช่น "ตรวจสอบสถานที่", "ส่องกล้อง", "ถ่ายภาพสถานที่")', 'loading');
             speakThaiText('เชิญพูดคำสั่งได้เลยครับ', true);
 
             recognition.onresult = (event) => {
@@ -706,12 +792,11 @@
                     detectRealLocation();
                 } else if (transcript.includes('กล้อง') || transcript.includes('สิ่งกีดขวาง') || transcript.includes('ส่องทาง')) {
                     openHazardScannerModal();
-                } else if (transcript.includes('ถ่ายรูป')) {
+                } else if (transcript.includes('ถ่ายรูป') || transcript.includes('ถ่ายภาพ')) {
                     triggerCameraCapture();
                 } else if (transcript.includes('ล่าสุด') || transcript.includes('ออฟไลน์')) {
                     showOfflineLastLocation();
                 } else {
-                    // นำข้อความที่พูดไปค้นหาเป็นสถานที่ทันที
                     const cleanPlace = transcript.replace(/^(นำทางไป|ไปที่|บอกสถานที่|ค้นหา)\s*/g, '').trim() || transcript;
                     document.getElementById('custom-place-input').value = cleanPlace;
                     handleCustomPlaceSubmit();
@@ -731,33 +816,43 @@
         }
 
         // =====================================================================
-        // 3. ระบบส่องกล้องเตือนภัยสิ่งกีดขวางเรียลไทม์ (Smart Hazard Alert)
+        // 3. ระบบส่องกล้องเตือนสิ่งกีดขวางความเร็วสูง (คน สัตว์ รถ ไฟจราจร ของใช้ในบ้าน)
         // =====================================================================
         async function openHazardScannerModal() {
             const modal = document.getElementById('hazard-scanner-modal');
             const video = document.getElementById('hazard-video');
             const noCamMsg = document.getElementById('hazard-no-cam-msg');
+            const scanStatus = document.getElementById('hazard-scan-status');
 
             modal.classList.remove('hidden');
             modal.classList.add('flex');
             noCamMsg.classList.add('hidden');
+            scanStatus.innerText = 'กำลังเปิดกล้องและโมเดลตรวจจับวัตถุ...';
 
-            speakThaiText('เปิดโหมดส่องกล้องเตือนสิ่งกีดขวางข้างหน้าแล้วครับ');
+            speakThaiText('เปิดโหมดส่องกล้องเตือนสิ่งกีดขวางความเร็วสูงแล้วครับ');
+
+            // ตรวจสอบให้แน่ใจว่าโมเดลพร้อมใช้งาน
+            if (!cocoModel) {
+                await preloadCocoSsdModel();
+            }
 
             try {
                 hazardStream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'environment' },
+                    video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } },
                     audio: false
                 });
                 video.srcObject = hazardStream;
 
-                // วิเคราะห์ภาพอัตโนมัติทุกๆ 6 วินาที
-                hazardScanInterval = setInterval(() => {
-                    scanFrameWithAIForThai(true);
-                }, 6000);
+                video.onloadeddata = () => {
+                    scanStatus.innerText = 'พร้อมตรวจจับความเร็วสูง (Real-time)';
+                    // ทำงานทันทีทุกๆ 600 มิลลิวินาที (0.6 วินาที) ไวกว่าเดิม 10 เท่า!
+                    hazardScanInterval = setInterval(() => {
+                        runFastHazardDetection(false);
+                    }, 600);
+                };
             } catch (err) {
                 noCamMsg.classList.remove('hidden');
-                document.getElementById('hazard-scan-status').innerText = 'โหมดจำลองสถานการณ์ (ไม่พบกล้อง)';
+                scanStatus.innerText = 'โหมดจำลองสถานการณ์ (ไม่พบกล้อง)';
             }
         }
 
@@ -774,60 +869,113 @@
                 hazardStream.getTracks().forEach(track => track.stop());
                 hazardStream = null;
             }
+            isScanningFrame = false;
         }
 
-        async function scanFrameWithAIForThai(isSilentAuto = false) {
+        async function runFastHazardDetection(manualTrigger = false) {
             const video = document.getElementById('hazard-video');
-            const statusText = document.getElementById('hazard-scan-status');
+            const overlay = document.getElementById('hazard-overlay-canvas');
+            const scanStatus = document.getElementById('hazard-scan-status');
+            const badgesContainer = document.getElementById('detected-objects-badges');
 
             if (!video || !video.srcObject || video.readyState < 2) {
-                if (!isSilentAuto) {
-                    triggerSimulatedHazard('เตือนภัย! ตรวจพบสิ่งกีดขวางและบุคคลข้างหน้า ระยะ 2.5 เมตร กรุณาชะลอและเบี่ยงซ้าย');
+                if (manualTrigger) {
+                    triggerSimulatedHazard('เตือนภัย! ตรวจพบรถยนต์ สุนัข และเก้าอี้ขวางทางข้างหน้า กรุณาเดินด้วยความระมัดระวัง');
                 }
                 return;
             }
 
-            statusText.innerText = 'กำลังส่งภาพให้ AI For Thai วิเคราะห์...';
-            const canvas = document.createElement('canvas');
-            canvas.width = 640;
-            canvas.height = Math.round((video.videoHeight / video.videoWidth) * 640) || 480;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+            if (isScanningFrame || !cocoModel) return;
+            isScanningFrame = true;
 
-            const result = await detectPersonInPhoto(jpegDataUrl);
-            statusText.innerText = `สแกนแล้ว • พบบุคคล ${result.count} คน`;
+            const t0 = performance.now();
+            try {
+                // ประมวลผลภาพบนเครื่องโดยตรง (Edge AI) ความเร็วสูง ไม่ต้องรออัปโหลดผ่านเน็ต
+                const predictions = await cocoModel.detect(video, 8, 0.45);
+                const elapsedMs = Math.round(performance.now() - t0);
+                scanStatus.innerText = `สแกนสด (${elapsedMs} ms) • พบ ${predictions.length} รายการ`;
 
-            // วาดกรอบลงบน overlay canvas
-            const overlay = document.getElementById('hazard-overlay-canvas');
-            overlay.width = canvas.width;
-            overlay.height = canvas.height;
-            const oCtx = overlay.getContext('2d');
-            oCtx.clearRect(0, 0, overlay.width, overlay.height);
+                // วาดกรอบสีสันแยกตามหมวดหมู่ลงบนภาพกล้องสด
+                overlay.width = video.videoWidth || 640;
+                overlay.height = video.videoHeight || 480;
+                const ctx = overlay.getContext('2d');
+                ctx.clearRect(0, 0, overlay.width, overlay.height);
 
-            if (result.count > 0) {
-                if (Array.isArray(result.boxes)) {
-                    oCtx.strokeStyle = '#fcd34d';
-                    oCtx.lineWidth = 4;
-                    result.boxes.forEach(box => {
-                        const x = box.x ?? box.xmin ?? 40;
-                        const y = box.y ?? box.ymin ?? 40;
-                        const w = box.w ?? box.width ?? 150;
-                        const h = box.h ?? box.height ?? 250;
-                        oCtx.strokeRect(x, y, w, h);
+                badgesContainer.innerHTML = '';
+
+                if (predictions.length > 0) {
+                    const detectedNames = [];
+                    const dangerItems = [];
+
+                    predictions.forEach(pred => {
+                        const [x, y, w, h] = pred.bbox;
+                        const info = OBJECT_THAI_MAP[pred.class] || { th: pred.class, category: 'วัตถุอื่นๆ', icon: '📦', danger: true };
+                        const scorePct = Math.round(pred.score * 100);
+
+                        // เลือกสีกรอบ: สีเหลืองอำพันสำหรับสิ่งกีดขวาง/อันตราย, สีเขียวมิ้นต์สำหรับของใช้ทั่วไป
+                        const boxColor = info.danger ? '#fcd34d' : '#5eead4';
+                        ctx.strokeStyle = boxColor;
+                        ctx.lineWidth = 3;
+                        ctx.strokeRect(x, y, w, h);
+
+                        // วาดแถบชื่อภาษาไทยด้านบนกรอบ
+                        const labelText = `${info.th} (${scorePct}%)`;
+                        ctx.font = 'bold 14px Prompt, sans-serif';
+                        const textWidth = ctx.measureText(labelText).width;
+                        ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+                        ctx.fillRect(x, Math.max(0, y - 24), textWidth + 12, 24);
+                        ctx.fillStyle = boxColor;
+                        ctx.fillText(labelText, x + 6, Math.max(17, y - 6));
+
+                        if (!detectedNames.includes(info.th)) {
+                            detectedNames.push(info.th);
+                        }
+                        if (info.danger && !dangerItems.includes(info.th)) {
+                            dangerItems.push(info.th);
+                        }
+
+                        // สร้างป้ายแท็กด้านล่างจอ
+                        const badge = document.createElement('span');
+                        badge.className = info.danger
+                            ? 'inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-400/15 border border-amber-400/35 text-[11px] text-accentAmber font-medium'
+                            : 'inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-accentTeal/15 border border-accentTeal/30 text-[11px] text-accentTeal font-medium';
+                        badge.innerText = `${info.icon} ${info.th} (${scorePct}%)`;
+                        badgesContainer.appendChild(badge);
                     });
+
+                    const summaryText = dangerItems.length > 0
+                        ? `ระวัง! ตรวจพบ ${dangerItems.join(', ')} อยู่ข้างหน้า กรุณาระมัดระวังครับ`
+                        : `ตรวจพบสิ่งของข้างหน้า ได้แก่ ${detectedNames.join(', ')}`;
+
+                    document.getElementById('hazard-alert-text').innerText = summaryText;
+
+                    // พูดเตือนเมื่อข้อความเปลี่ยน หรือกดสแกนเอง หรือผ่านไปเกิน 4 วินาที
+                    const now = Date.now();
+                    if (manualTrigger || summaryText !== lastSpokenAlert || (now - lastSpokenTime > 4500)) {
+                        lastSpokenAlert = summaryText;
+                        lastSpokenTime = now;
+                        if (dangerItems.length > 0 && navigator.vibrate) {
+                            navigator.vibrate([180, 80, 180]);
+                        }
+                        speakThaiText(summaryText, manualTrigger);
+                    }
+                } else {
+                    badgesContainer.innerHTML = '<span class="text-[11px] text-accentTeal">✅ เส้นทางโล่ง ไม่พบสิ่งกีดขวาง</span>';
+                    if (manualTrigger) {
+                        triggerSimulatedHazard('เส้นทางข้างหน้าโล่งและปลอดภัย ยังไม่พบสิ่งกีดขวางครับ');
+                    }
                 }
-                const msg = `ระวัง! ตรวจพบบุคคลยืนอยู่ข้างหน้า ${result.count} คน กรุณาระมัดระวังในการเดินผ่านครับ`;
-                triggerSimulatedHazard(msg);
-            } else if (!isSilentAuto) {
-                triggerSimulatedHazard('เส้นทางข้างหน้าปลอดภัย ยังไม่พบบุคคลหรือสิ่งกีดขวางในระยะใกล้ครับ');
+            } catch (e) {
+                console.warn('Detection error:', e);
+            } finally {
+                isScanningFrame = false;
             }
         }
 
         function triggerSimulatedHazard(alertMessage) {
             document.getElementById('hazard-alert-text').innerText = alertMessage;
-            if (navigator.vibrate && alertMessage.includes('ระวัง') || alertMessage.includes('เตือนภัย')) {
-                navigator.vibrate([200, 100, 200]); // สั่นเตือนมือถือผู้พิการทางสายตา
+            if (navigator.vibrate && (alertMessage.includes('ระวัง') || alertMessage.includes('เตือนภัย') || alertMessage.includes('แจ้งเตือน'))) {
+                navigator.vibrate([200, 100, 200]);
             }
             speakThaiText(alertMessage, true);
         }
@@ -858,7 +1006,7 @@
 
         function saveLastLocationOffline(locationPayload) {
             try {
-                const { photoDataUrl, detectionBoxes, ...cleanPayload } = locationPayload;
+                const { photoDataUrl, ...cleanPayload } = locationPayload;
                 const savedTime = new Date().toLocaleString('th-TH', {
                     day: '2-digit', month: 'short', year: 'numeric',
                     hour: '2-digit', minute: '2-digit'
@@ -962,7 +1110,7 @@
         }
 
         // =====================================================================
-        // 5. ถ่ายรูประบุสถานที่ + AI For Thai Person Detection
+        // 5. ถ่ายภาพสถานที่ พร้อมระบุตำแหน่งสถานที่นั้นๆ (Geo-Tagged Place Photo)
         // =====================================================================
         function triggerCameraCapture() {
             const input = document.getElementById('camera-photo-input');
@@ -970,7 +1118,7 @@
             input.click();
         }
 
-        function compressImageToJpegBase64(file, maxWidth = 800) {
+        function compressImageToJpegBase64(file, maxWidth = 900) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = (e) => {
@@ -987,11 +1135,7 @@
                         canvas.height = h;
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, w, h);
-                        resolve({
-                            dataUrl: canvas.toDataURL('image/jpeg', 0.85),
-                            width: w,
-                            height: h
-                        });
+                        resolve(canvas.toDataURL('image/jpeg', 0.88));
                     };
                     img.onerror = reject;
                     img.src = e.target.result;
@@ -1001,55 +1145,9 @@
             });
         }
 
-        async function detectPersonInPhoto(jpegDataUrl) {
-            if (!navigator.onLine) {
-                return { count: 0, boxes: [], statusText: 'ออฟไลน์ (บันทึกรูปถ่ายไว้ในเครื่อง)' };
-            }
-
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 9000);
-
-                const res = await fetch('/api/person-detect', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ imageBase64: jpegDataUrl }),
-                    signal: controller.signal
-                });
-                clearTimeout(timeoutId);
-
-                if (!res.ok) throw new Error('Person Detection API ตอบกลับไม่สำเร็จ');
-                const data = await res.json();
-
-                let boxes = [];
-                if (Array.isArray(data.human_detect)) {
-                    boxes = data.human_detect;
-                } else if (Array.isArray(data.objects)) {
-                    boxes = data.objects;
-                } else if (Array.isArray(data.result)) {
-                    boxes = data.result;
-                } else if (Array.isArray(data)) {
-                    boxes = data;
-                }
-
-                const personCount = boxes.length || (typeof data.count === 'number' ? data.count : 0);
-                return {
-                    count: personCount,
-                    boxes: boxes,
-                    statusText: `Person Detection สำเร็จ (พบบุคคล ${personCount} คน)`
-                };
-            } catch (err) {
-                return {
-                    count: 0,
-                    boxes: [],
-                    statusText: 'เชื่อมต่อ Person Detection API (Fallback)'
-                };
-            }
-        }
-
         function getQuickCurrentCoords() {
             return new Promise((resolve) => {
-                if (!navigator.geolocation || !navigator.onLine) {
+                if (!navigator.geolocation) {
                     const savedRaw = localStorage.getItem(OFFLINE_STORAGE_KEY);
                     if (savedRaw) {
                         const saved = JSON.parse(savedRaw);
@@ -1077,147 +1175,122 @@
             });
         }
 
-        async function handlePhotoCapture(event) {
+        async function handlePlacePhotoCapture(event) {
             const file = event.target.files && event.target.files[0];
             if (!file) return;
 
             const btnPhoto = document.getElementById('btn-capture-photo');
             const btnPhotoText = document.getElementById('btn-photo-text');
             btnPhoto.disabled = true;
-            btnPhotoText.innerText = 'กำลังวิเคราะห์รูปภาพและระบุสถานที่...';
-            setStatus('กำลังประมวลผลรูปถ่ายผ่าน AI For Thai (Person Detection) และระบุพิกัดสถานที่...', 'loading');
+            btnPhotoText.innerText = 'กำลังระบุตำแหน่งสถานที่ของภาพถ่าย...';
+            setStatus('กำลังบันทึกภาพถ่ายสถานที่และดึงพิกัดตำแหน่งสถานที่นั้นๆ...', 'loading');
 
             try {
-                const compressed = await compressImageToJpegBase64(file, 800);
-
-                const [personResult, coordsInfo] = await Promise.all([
-                    detectPersonInPhoto(compressed.dataUrl),
+                // ดึงภาพถ่ายและพิกัด GPS พร้อมกันอย่างรวดเร็ว
+                const [photoDataUrl, coordsInfo] = await Promise.all([
+                    compressImageToJpegBase64(file, 900),
                     getQuickCurrentCoords()
                 ]);
 
-                let placeName = "จุดถ่ายภาพปัจจุบัน";
-                let regionText = "ระบุจากภาพถ่าย";
+                let placeName = "สถานที่ถ่ายภาพปัจจุบัน";
+                let regionText = "ระบุจากพิกัดภาพถ่าย";
                 let coordsFormatted = "ไม่พบสัญญาณ GPS (ใช้โหมดออฟไลน์)";
                 let lat = null;
                 let lng = null;
+
+                // หากผู้ใช้พิมพ์ชื่อสถานที่ไว้ในช่องค้นหา ให้ใช้ชื่อนั้นเป็นชื่อสถานที่ของภาพถ่ายได้ทันที
+                const manualInput = document.getElementById('custom-place-input').value.trim();
 
                 if (coordsInfo) {
                     lat = coordsInfo.lat;
                     lng = coordsInfo.lng;
                     coordsFormatted = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
 
-                    if (navigator.onLine) {
+                    if (manualInput) {
+                        placeName = manualInput;
+                        regionText = "ระบุชื่อสถานที่พร้อมพิกัด GPS";
+                    } else if (navigator.onLine) {
                         try {
                             const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=th`);
                             const geoData = await geoRes.json();
                             const addr = geoData.address || {};
-                            placeName = geoData.name || addr.amenity || addr.building || addr.road || addr.suburb || "จุดถ่ายภาพปัจจุบัน";
+                            placeName = geoData.name || addr.amenity || addr.building || addr.shop || addr.road || addr.suburb || "สถานที่ถ่ายภาพปัจจุบัน";
                             const district = addr.suburb || addr.district || addr.city_district || "";
                             const province = addr.city || addr.province || addr.state || "";
                             regionText = [district, province].filter(Boolean).join(" ") || "ประเทศไทย";
                         } catch (e) {
-                            placeName = `พิกัดภาพถ่าย (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+                            placeName = `สถานที่ ณ พิกัด (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
                         }
                     } else {
                         const savedRaw = localStorage.getItem(OFFLINE_STORAGE_KEY);
                         if (savedRaw) {
                             const saved = JSON.parse(savedRaw);
-                            placeName = saved.placeQuery || "จุดถ่ายภาพล่าสุด (ออฟไลน์)";
+                            placeName = saved.placeQuery || "สถานที่ถ่ายภาพล่าสุด (ออฟไลน์)";
                             regionText = saved.region || "โหมดออฟไลน์";
                         }
                     }
-                } else {
-                    const manualInput = document.getElementById('custom-place-input').value.trim();
-                    if (manualInput) placeName = manualInput;
+                } else if (manualInput) {
+                    placeName = manualInput;
+                    const resolved = await resolvePlaceCoordinates(manualInput);
+                    if (resolved) {
+                        lat = resolved.lat;
+                        lng = resolved.lng;
+                        coordsFormatted = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+                        regionText = resolved.region;
+                    }
                 }
 
+                // สกัดชื่อเฉพาะของสถานที่ด้วย AI For Thai TH-NER
                 const aiNerResult = await analyzeLocationWithTHNER(placeName);
-                const personSummary = personResult.count > 0
-                    ? ` (ตรวจพบบุคคลในภาพ ${personResult.count} คน)`
-                    : ` (ไม่พบบุคคลในภาพ / ถ่ายสถานที่)`;
 
                 const nowStr = new Date().toLocaleString('th-TH', {
                     day: '2-digit', month: 'short', year: 'numeric',
                     hour: '2-digit', minute: '2-digit'
                 });
 
-                const entitiesList = [
-                    ...aiNerResult.entities,
-                    { word: `บุคคลในภาพ: ${personResult.count} คน`, tag: 'Person Detection' }
-                ];
-
                 const payload = {
-                    announcement: `${aiNerResult.formattedText}${personSummary}`,
+                    announcement: `ภาพถ่ายสถานที่: ${aiNerResult.formattedText}`,
                     placeQuery: placeName,
                     region: regionText,
                     coordsText: coordsFormatted,
                     lat: lat,
                     lng: lng,
                     timestamp: nowStr,
-                    apiStatus: personResult.statusText,
-                    entities: entitiesList,
+                    apiStatus: 'บันทึกภาพถ่ายและระบุพิกัดสถานที่สำเร็จ',
+                    entities: aiNerResult.entities,
                     isOfflineMode: !navigator.onLine,
-                    photoDataUrl: compressed.dataUrl,
-                    detectionBoxes: personResult.boxes,
-                    personCount: personResult.count
+                    photoDataUrl: photoDataUrl
                 };
 
                 saveLastLocationOffline(payload);
-                setStatus(`ระบุสถานที่จากรูปถ่ายสำเร็จ • ${personResult.statusText}`, 'success');
+                setStatus(`ถ่ายภาพสถานที่และระบุตำแหน่ง "${placeName}" สำเร็จ`, 'success');
                 openLocationModal(payload, !navigator.onLine);
             } catch (err) {
-                setStatus('ไม่สามารถประมวลผลรูปภาพได้ กรุณาลองใหม่อีกครั้ง', 'error');
+                setStatus('ไม่สามารถประมวลผลภาพถ่ายสถานที่ได้ กรุณาลองใหม่อีกครั้ง', 'error');
             } finally {
                 btnPhoto.disabled = false;
-                btnPhotoText.innerText = 'ถ่ายรูประบุสถานที่ & ตรวจจับบุคคล';
+                btnPhotoText.innerText = 'ถ่ายภาพสถานที่ พร้อมระบุตำแหน่งสถานที่นั้นๆ';
             }
         }
 
-        function renderPhotoDetectionCanvas(photoDataUrl, boxes, personCount) {
-            const section = document.getElementById('photo-detection-section');
-            const badge = document.getElementById('person-count-badge');
-            const canvas = document.getElementById('detection-canvas');
+        function renderPlacePhotoCard(photoDataUrl, placeName, coordsText) {
+            const section = document.getElementById('place-photo-section');
+            const imgEl = document.getElementById('captured-place-img');
+            const badgeEl = document.getElementById('photo-place-badge');
+            const overlayName = document.getElementById('photo-overlay-place-name');
+            const overlayCoords = document.getElementById('photo-overlay-coords');
 
             if (!photoDataUrl) {
                 section.classList.add('hidden');
+                imgEl.src = '';
                 return;
             }
 
             section.classList.remove('hidden');
-            badge.innerText = `พบบุคคล ${personCount || 0} คน`;
-
-            const img = new Image();
-            img.onload = () => {
-                canvas.width = img.width;
-                canvas.height = img.height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0);
-
-                if (Array.isArray(boxes) && boxes.length > 0) {
-                    ctx.strokeStyle = '#5eead4';
-                    ctx.lineWidth = Math.max(3, Math.round(img.width / 180));
-                    ctx.fillStyle = 'rgba(94, 234, 212, 0.18)';
-                    ctx.font = `bold ${Math.max(14, Math.round(img.width / 32))}px Prompt, sans-serif`;
-
-                    boxes.forEach((box, idx) => {
-                        const x = box.x ?? box.xmin ?? box.left ?? (Array.isArray(box.bbox) ? box.bbox[0] : null);
-                        const y = box.y ?? box.ymin ?? box.top ?? (Array.isArray(box.bbox) ? box.bbox[1] : null);
-                        const w = box.w ?? box.width ?? (box.xmax !== undefined && x !== null ? box.xmax - x : (Array.isArray(box.bbox) ? box.bbox[2] : null));
-                        const h = box.h ?? box.height ?? (box.ymax !== undefined && y !== null ? box.ymax - y : (Array.isArray(box.bbox) ? box.bbox[3] : null));
-
-                        if (x !== null && y !== null && w !== null && h !== null) {
-                            ctx.fillRect(x, y, w, h);
-                            ctx.strokeRect(x, y, w, h);
-                            ctx.fillStyle = '#0f172a';
-                            ctx.fillRect(x, Math.max(0, y - 24), 86, 24);
-                            ctx.fillStyle = '#5eead4';
-                            ctx.fillText(`Person #${idx + 1}`, x + 6, Math.max(17, y - 6));
-                            ctx.fillStyle = 'rgba(94, 234, 212, 0.18)';
-                        }
-                    });
-                }
-            };
-            img.src = photoDataUrl;
+            imgEl.src = photoDataUrl;
+            badgeEl.innerText = placeName || 'สถานที่ถ่ายภาพ';
+            overlayName.innerText = `📍 ${placeName || 'สถานที่ถ่ายภาพ'}`;
+            overlayCoords.innerText = `พิกัด: ${coordsText || '-'}`;
         }
 
         async function analyzeLocationWithTHNER(rawPlaceText) {
@@ -1723,7 +1796,10 @@
             document.getElementById('modal-timestamp').innerText = data.timestamp || '-';
             document.getElementById('modal-api-status').innerText = data.apiStatus;
 
-            renderPhotoDetectionCanvas(data.photoDataUrl, data.detectionBoxes, data.personCount);
+            // แสดงภาพถ่ายสถานที่ พร้อมป้ายชื่อสถานที่และพิกัด
+            renderPlacePhotoCard(data.photoDataUrl, data.placeQuery, data.coordsText);
+
+            // แสดง Minimap ด้วย Google Maps Embed
             renderAlwaysVisibleMinimap(data.lat, data.lng, data.placeQuery, data.coordsText);
             toggleOfflineNavigation(autoOpenOfflineNav);
 
@@ -1735,7 +1811,7 @@
                 modeBadge.innerText = 'โหมดออฟไลน์ • แสดง Minimap และนำทางไม่ง้อเน็ต/GPS';
                 modeBadge.className = 'text-xs font-medium text-accentAmber tracking-wide';
             } else if (data.photoDataUrl) {
-                modeBadge.innerText = 'ระบุสถานที่จากภาพถ่าย • Person Detection API';
+                modeBadge.innerText = 'ภาพถ่ายสถานที่ • ระบุตำแหน่งสถานที่นั้นๆ';
                 modeBadge.className = 'text-xs font-medium text-accentTeal tracking-wide';
             } else {
                 modeBadge.innerText = 'แจ้งเตือนพิกัดตำแหน่ง (เสียงพูดภาษาไทย)';
