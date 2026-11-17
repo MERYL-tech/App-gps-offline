@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบบอกสถานที่ - Location Announcer</title>
+    <!-- โหลด Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- โหลดฟอนต์ Prompt เพื่อความสวยงามและอ่านง่ายสำหรับภาษาไทย -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Prompt', 'sans-serif'],
+                    },
+                    colors: {
+                        baseBg: '#181c24',      // พื้นหลังสีเข้มนุ่มนวล สบายตา (Low-contrast)
+                        cardBg: '#1e2430',      // พื้นหลังการ์ดหลักสไตล์ Glassmorphism
+                        panelBg: '#161b24',     // พื้นหลังกล่องแสดงผลย่อย
+                        borderSubtle: '#2d3648',// เส้นขอบบางๆ ไม่แยงตา
+                        textMain: '#f1f5f9',    // สีข้อความหลัก
+                        textMuted: '#94a3b8',   // สีข้อความรอง
+                        accentTeal: '#5eead4',  // สีเน้นโทนเขียวมิ้นต์นุ่มนวล
+                        accentSky: '#7dd3fc',   // สีเน้นโทนฟ้านวล
+                        accentAmber: '#fcd34d', // สีเน้นโทนเหลืองนวล (ตรงกับหมุดในภาพประกอบ)
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            /* พื้นหลังหลักใช้รูป image_2cefc0.png พร้อมไล่เฉดสีเขียวมิ้นต์-ฟ้าสำรองตามโทนภาพ */
+            background-color: #bae6fd;
+            background-image: url('image_2cefc0.png'), linear-gradient(135deg, #d1fae5 0%, #bae6fd 50%, #93c5fd 100%);
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+            color: #f1f5f9;
+            font-family: 'Prompt', sans-serif;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 sm:p-6 antialiased selection:bg-accentSky/20 selection:text-accentSky relative overflow-x-hidden">
+
+    <!-- ภาพประกอบเวกเตอร์พื้นหลังสำรอง (สไตล์เดียวกับ image_2cefc0.png เผื่อกรณีเปิดไฟล์เดี่ยวโดยไม่มีไฟล์รูปคู่กัน) -->
+    <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden opacity-35 flex items-center justify-center">
+        <svg class="w-full h-full max-w-5xl object-contain" viewBox="0 0 800 450" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- ลูกโลกตรงกลาง -->
+            <circle cx="330" cy="240" r="115" fill="#e0f2fe" stroke="#0c4a6e" stroke-width="6"/>
+            <path d="M270 160 C295 155, 315 175, 300 205 C285 225, 250 215, 255 185 Z" fill="#f87171" stroke="#0c4a6e" stroke-width="4"/>
+            <path d="M250 265 C285 260, 310 290, 290 330 C270 350, 240 325, 245 290 Z" fill="#34d399" stroke="#0c4a6e" stroke-width="4"/>
+            <path d="M365 200 C405 195, 435 235, 420 285 C405 320, 365 305, 370 260 Z" fill="#38bdf8" stroke="#0c4a6e" stroke-width="4"/>
+            <!-- เส้นประโค้งเชื่อมจุด -->
+            <path d="M255 205 Q 325 215 385 275" stroke="#0c4a6e" stroke-width="5" stroke-dasharray="10 10" stroke-linecap="round"/>
+            <!-- หมุดสีเหลือง -->
+            <path d="M255 110 C230 110, 212 128, 212 152 C212 182, 255 215, 255 215 C255 215, 298 182, 298 152 C298 128, 280 110, 255 110 Z" fill="#facc15" stroke="#0c4a6e" stroke-width="6"/>
+            <circle cx="255" cy="150" r="16" fill="#e0f2fe" stroke="#0c4a6e" stroke-width="5"/>
+            <!-- ดาวสีเหลือง -->
+            <polygon points="385,255 391,269 406,270 395,280 398,295 385,287 372,295 375,280 364,270 379,269" fill="#facc15" stroke="#0c4a6e" stroke-width="4"/>
+            <!-- กล่องสัญลักษณ์ GPS มุมขวาบน -->
+            <rect x="520" y="55" width="145" height="95" rx="22" transform="rotate(10 520 55)" fill="#bae6fd" stroke="#0c4a6e" stroke-width="6"/>
+            <text x="542" y="122" transform="rotate(10 542 122)" fill="#0c4a6e" font-family="Prompt, sans-serif" font-weight="700" font-size="38">GPS</text>
+            <!-- ดาวเทียมซ้ายบนและซ้ายล่าง -->
+            <g transform="translate(95, 50) rotate(35)">
+                <rect x="18" y="0" width="14" height="32" rx="3" fill="#0c4a6e"/>
+                <rect x="0" y="8" width="14" height="16" fill="#1e3a8a"/>
+                <rect x="36" y="8" width="14" height="16" fill="#1e3a8a"/>
+            </g>
+            <g transform="translate(80, 330) rotate(-35)">
+                <rect x="22" y="0" width="16" height="38" rx="3" fill="#0c4a6e"/>
+                <rect x="0" y="10" width="18" height="18" fill="#1e3a8a"/>
+                <rect x="42" y="10" width="18" height="18" fill="#1e3a8a"/>
+            </g>
+        </svg>
+    </div>
+
+    <!-- เลเยอร์คลุมพื้นหลังแบบโปร่งแสงสีเข้มนุ่มนวล เพื่อให้อ่านข้อความในการ์ดได้ชัดเจนสบายตา -->
+    <div class="fixed inset-0 bg-slate-950/65 backdrop-blur-[3px] z-0 pointer-events-none"></div>
+
+    <!-- กล่องแจ้งเตือนขนาดเล็ก (Toast) สำหรับแจ้งสถานะการคัดลอก -->
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] hidden items-center gap-2 bg-cardBg border border-accentTeal/40 text-textMain px-4 py-2.5 rounded-full shadow-xl text-xs">
+        <svg class="w-4 h-4 text-accentTeal shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span id="toast-msg">คัดลอกข้อความเรียบร้อยแล้ว</span>
+    </div>
+
+    <!-- การ์ดหลักตรงกลางหน้าจอ (Clean Glassmorphism Card) -->
+    <main class="relative z-10 w-full max-w-[470px] bg-cardBg/90 backdrop-blur-md border border-borderSubtle rounded-3xl p-6 sm:p-8 shadow-2xl shadow-black/40">
+        
+        <!-- ส่วนหัว: ไอคอน, ชื่อแอป และป้ายสถานะ Online / Offline -->
+        <header class="flex items-center justify-between gap-3 pb-5 border-b border-borderSubtle">
+            <div class="flex items-center gap-3.5">
+                <div class="w-12 h-12 rounded-2xl bg-accentAmber/15 border border-accentAmber/30 flex items-center justify-center text-accentAmber shrink-0">
+                    <!-- ไอคอนหมุดแผนที่สีเหลืองนวลเข้ากับภาพประกอบ -->
+                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
+                        <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-semibold text-textMain tracking-tight">ระบบบอกสถานที่</h1>
+                    <p class="text-xs text-textMuted mt-0.5 flex items-center gap-1.5">
+                        <span>Location Announcer</span>
+                        <span class="w-1 h-1 rounded-full bg-textMuted/50"></span>
+                        <span class="text-accentTeal">AI For Thai NER</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- ป้ายบอกสถานะเครือข่าย Online / Offline -->
+            <div id="network-badge" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] font-medium shrink-0">
+                <span id="network-dot" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span id="network-text">ออนไลน์</span>
+            </div>
+        </header>
+
+        <!-- คำอธิบายสั้นๆ -->
+        <p class="mt-4 text-xs sm:text-sm text-textMuted leading-relaxed">
+            ตรวจสอบพิกัดตำแหน่งปัจจุบัน หรือพิมพ์ระบุสถานที่ที่ต้องการ เพื่อวิเคราะห์ชื่อเฉพาะด้วย <span class="text-textMain font-medium">AI For Thai (TH-NER)</span> และบันทึกไว้ดูแบบออฟไลน์ได้
+        </p>
+
+        <!-- ส่วนที่ 1: ปุ่มกดตรวจสอบพิกัด GPS จริง -->
+        <section class="mt-5">
+            <button id="btn-check-gps" onclick="detectRealLocation()" class="w-full py-3.5 px-5 rounded-2xl bg-accentSky hover:bg-[#93ddfd] disabled:bg-borderSubtle disabled:text-textMuted text-[#0f172a] font-semibold text-sm sm:text-base flex items-center justify-center gap-2.5 transition-all cursor-pointer disabled:cursor-not-allowed shadow-md shadow-sky-950/30">
+                <!-- ไอคอนระบุพิกัด GPS -->
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="2" x2="5" y1="12" y2="12"></line>
+                    <line x1="19" x2="22" y1="12" y2="12"></line>
+                    <line x1="12" x2="12" y1="2" y2="5"></line>
+                    <line x1="12" x2="12" y1="19" y2="22"></line>
+                    <circle cx="12" cy="12" r="7"></circle>
+                    <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <span id="btn-text">ตรวจสอบสถานที่ปัจจุบัน (GPS)</span>
+            </button>
+        </section>
+
+        <!-- เส้นคั่นแบ่งหัวข้อ -->
+        <div class="relative flex py-4 items-center">
+            <div class="flex-grow border-t border-borderSubtle"></div>
+            <span class="flex-shrink mx-3 text-[11px] text-textMuted">หรือกรอกสถานที่ที่ต้องการ</span>
+            <div class="flex-grow border-t border-borderSubtle"></div>
+        </div>
+
+        <!-- ส่วนที่ 2: ช่องกรอกสถานที่ที่ต้องการ (แทนปุ่มจำลองสถานที่เดิม) -->
+        <section class="space-y-2.5">
+            <label for="custom-place-input" class="block text-xs font-medium text-textMain">
+                ระบุชื่อสถานที่ที่ต้องการตรวจสอบ:
+            </label>
+            <div class="flex flex-col sm:flex-row gap-2">
+                <div class="relative flex-grow">
+                    <input type="text" id="custom-place-input" onkeydown="handleCustomInputKey(event)"
+                        placeholder="เช่น สถานีรถไฟฟ้า MRT หัวลำโพง, สยามพารากอน..."
+                        class="w-full bg-panelBg/90 border border-borderSubtle focus:border-accentTeal focus:ring-1 focus:ring-accentTeal rounded-xl px-3.5 py-2.5 text-sm text-textMain placeholder-textMuted/60 focus:outline-none transition-colors">
+                </div>
+                <button id="btn-custom-place" onclick="submitCustomLocation()"
+                    class="py-2.5 px-4 rounded-xl bg-accentTeal/15 hover:bg-accentTeal/25 border border-accentTeal/40 text-accentTeal font-medium text-sm flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <span>บอกสถานที่</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- ส่วนที่ 3: ปุ่มเรียกดูสถานที่ล่าสุดแบบ Offline (เวลาไม่มีสัญญาณ) -->
+        <section class="mt-4 pt-4 border-t border-borderSubtle/80">
+            <button id="btn-offline-last" onclick="showOfflineLastLocation()"
+                class="w-full py-2.5 px-4 rounded-xl bg-panelBg/80 hover:bg-borderSubtle/60 border border-borderSubtle text-textMuted hover:text-textMain text-xs font-medium flex items-center justify-between transition-colors cursor-pointer">
+                <span class="flex items-center gap-2">
+                    <!-- ไอคอนประวัติ / ออฟไลน์ -->
+                    <svg class="w-4 h-4 text-accentAmber shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                        <path d="M3 3v5h5"></path>
+                        <path d="M12 7v5l4 2"></path>
+                    </svg>
+                    <span>สถานที่ล่าสุด (โหมดออฟไลน์ / ไม่มีสัญญาณ)</span>
+                </span>
+                <span id="offline-saved-badge" class="text-[11px] text-accentSky">ดูข้อมูล</span>
+            </button>
+        </section>
+
+        <!-- กล่องแสดงสถานะการทำงาน -->
+        <section class="mt-4 bg-panelBg/90 border border-borderSubtle rounded-2xl p-3.5">
+            <div class="flex items-center gap-2.5 text-xs text-textMuted">
+                <span id="status-icon" class="text-accentTeal flex items-center justify-center shrink-0">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                </span>
+                <span id="status" class="leading-relaxed">พร้อมทำงาน ตรวจสอบพิกัดหรือกรอกสถานที่ด้านบน</span>
+            </div>
+        </section>
+
+        <!-- ส่วนท้ายเล็กๆ -->
+        <footer class="mt-5 text-center">
+            <p class="text-[11px] text-textMuted/80">AI For Thai (TH-NER API) • Offline Storage Enabled</p>
+        </footer>
+
+    </main>
+
+    <!-- ===================================================================== -->
+    <!-- POPUP MODAL: หน้าต่างเด้งบอกสถานที่ (กึ่งกลางหน้าจอ อ่านง่าย ชัดเจน) -->
+    <!-- ===================================================================== -->
+    <div id="location-modal" onclick="handleBackdropClick(event)" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/75 backdrop-blur-sm p-4 transition-opacity">
+        
+        <!-- กล่องเนื้อหา Popup -->
+        <div class="w-full max-w-[440px] bg-cardBg border border-borderSubtle rounded-3xl p-6 sm:p-7 shadow-2xl transform transition-all" onclick="event.stopPropagation()">
+            
+            <!-- ส่วนหัว Popup: ไอคอนหมุดสถานที่เด่นชัด + ป้ายโหมดการทำงาน -->
+            <div class="flex flex-col items-center text-center">
+                <div class="w-14 h-14 rounded-2xl bg-accentAmber/15 border border-accentAmber/30 flex items-center justify-center text-accentAmber mb-3">
+                    <!-- ไอคอนหมุดสถานที่เด่นชัด -->
+                    <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
+                        <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                </div>
+                <span id="modal-mode-badge" class="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-accentTeal/15 text-accentTeal border border-accentTeal/30">
+                    แจ้งเตือนพิกัดตำแหน่ง (ออนไลน์)
+                </span>
+                <h2 class="text-lg sm:text-xl font-semibold text-textMain mt-1.5">ตำแหน่งปัจจุบันของคุณ</h2>
+            </div>
+
+            <!-- กล่องข้อความบอกสถานที่ขนาดใหญ่ อ่านง่าย สบายตา -->
+            <div class="mt-4 bg-panelBg border border-borderSubtle rounded-2xl p-5 text-center">
+                <p id="modal-announcement-text" class="text-lg sm:text-xl font-medium text-textMain leading-relaxed">
+                    ขณะนี้คุณอยู่ที่บริเวณ ...
+                </p>
+
+                <!-- ป้ายแสดงคำเฉพาะที่ AI For Thai (TH-NER) สกัดได้ -->
+                <div id="modal-ner-tags" class="mt-3 pt-3 border-t border-borderSubtle/60 flex flex-wrap items-center justify-center gap-1.5">
+                    <!-- เติม Tag ด้วย JavaScript -->
+                </div>
+            </div>
+
+            <!-- รายละเอียดเพิ่มเติมเล็กๆ ด้านล่าง: พิกัด, เขต/จังหวัด, เวลาที่บันทึก และสถานะ AI For Thai -->
+            <div class="mt-4 bg-panelBg/70 border border-borderSubtle/70 rounded-2xl p-3.5 space-y-2 text-xs">
+                <div class="flex items-center justify-between gap-2">
+                    <span class="text-textMuted">เขต / พื้นที่:</span>
+                    <span id="modal-region" class="text-textMain font-medium text-right truncate">-</span>
+                </div>
+                <div class="flex items-center justify-between gap-2">
+                    <span class="text-textMuted">พิกัด (Lat, Lng):</span>
+                    <span id="modal-coords" class="text-accentSky font-mono text-right">-</span>
+                </div>
+                <div class="flex items-center justify-between gap-2">
+                    <span class="text-textMuted">เวลาที่บันทึกข้อมูล:</span>
+                    <span id="modal-timestamp" class="text-textMain text-right">-</span>
+                </div>
+                <div class="flex items-center justify-between gap-2 pt-1.5 border-t border-borderSubtle/60">
+                    <span class="text-textMuted">AI For Thai (TH-NER):</span>
+                    <span id="modal-api-status" class="text-accentTeal font-medium text-right">วิเคราะห์ชื่อเฉพาะสำเร็จ</span>
+                </div>
+            </div>
+
+            <!-- ปุ่มจัดการด้านล่าง: คัดลอกข้อความ และ ปิดหน้าต่าง (ตกลง) -->
+            <div class="mt-6 grid grid-cols-2 gap-3">
+                <button type="button" onclick="copyLocationMessage()" class="py-3 px-4 rounded-xl bg-panelBg hover:bg-borderSubtle/70 border border-borderSubtle text-textMain text-sm font-medium flex items-center justify-center gap-2 transition-colors cursor-pointer">
+                    <!-- ไอคอนคัดลอก -->
+                    <svg class="w-4 h-4 text-textMuted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                    <span>คัดลอกข้อความ</span>
+                </button>
+
+                <button type="button" onclick="closeLocationModal()" class="py-3 px-4 rounded-xl bg-accentSky hover:bg-[#93ddfd] text-[#0f172a] text-sm font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer">
+                    <span>ปิดหน้าต่าง (ตกลง)</span>
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- JAVASCRIPT: ตรรกะ GPS + AI For Thai (TH-NER) + ระบบ Offline ล่าสุด -->
+    <!-- ===================================================================== -->
+    <script>
+        // API Key ของคุณสำหรับเชื่อมต่อบริการ AI For Thai (TH-NER)
+        const AI_FOR_THAI_API_KEY = "XttDXVy5Om1SG2nHheN9xLcsYMsRhXG6";
+        const OFFLINE_STORAGE_KEY = "location_announcer_last_known";
+
+        // ตรวจสอบสถานะการเชื่อมต่ออินเทอร์เน็ตเมื่อเปิดหน้าเว็บ และเมื่อสัญญาณเปลี่ยนแปลง
+        window.addEventListener('DOMContentLoaded', () => {
+            updateNetworkStatusUI();
+            updateOfflineButtonState();
+        });
+        window.addEventListener('online', () => {
+            updateNetworkStatusUI();
+            setStatus("กลับมาเชื่อมต่ออินเทอร์เน็ตแล้ว พร้อมใช้งานออนไลน์", "success");
+        });
+        window.addEventListener('offline', () => {
+            updateNetworkStatusUI();
+            setStatus("ขาดการเชื่อมต่ออินเทอร์เน็ต คุณสามารถกดดู 'สถานที่ล่าสุด (โหมดออฟไลน์)' ได้", "warning");
+        });
+
+        // อัปเดตป้ายแสดงสถานะ Online / Offline มุมขวาบนของการ์ด
+        function updateNetworkStatusUI() {
+            const isOnline = navigator.onLine;
+            const badge = document.getElementById('network-badge');
+            const dot = document.getElementById('network-dot');
+            const text = document.getElementById('network-text');
+
+            if (isOnline) {
+                badge.className = "flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] font-medium shrink-0";
+                dot.className = "w-2 h-2 rounded-full bg-emerald-400";
+                text.innerText = "ออนไลน์";
+            } else {
+                badge.className = "flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[11px] font-medium shrink-0";
+                dot.className = "w-2 h-2 rounded-full bg-amber-400 animate-pulse";
+                text.innerText = "ออฟไลน์ (ไม่มีสัญญาณ)";
+            }
+        }
+
+        // อัปเดตข้อความบนปุ่มสถานที่ล่าสุด
+        function updateOfflineButtonState() {
+            const saved = getSavedOfflineLocation();
+            const badge = document.getElementById('offline-saved-badge');
+            if (saved && saved.placeName) {
+                badge.innerText = `บันทึกไว้: ${saved.placeName.slice(0, 16)}${saved.placeName.length > 16 ? '...' : ''}`;
+            } else {
+                badge.innerText = "ยังไม่มีข้อมูลบันทึก";
+            }
+        }
+
+        // บันทึกสถานที่ล่าสุดลง localStorage สำหรับใช้งานตอนไม่มีสัญญาณ (Offline)
+        function saveOfflineLocation(locationData) {
+            try {
+                localStorage.setItem(OFFLINE_STORAGE_KEY, JSON.stringify(locationData));
+                updateOfflineButtonState();
+            } catch (e) {
+                console.warn("ไม่สามารถบันทึกข้อมูลลง localStorage ได้:", e);
+            }
+        }
+
+        // ดึงข้อมูลสถานที่ล่าสุดจาก localStorage
+        function getSavedOfflineLocation() {
+            try {
+                const raw = localStorage.getItem(OFFLINE_STORAGE_KEY);
+                return raw ? JSON.parse(raw) : null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // สร้างข้อความวันเวลาปัจจุบันภาษาไทย
+        function getCurrentThaiTimestamp() {
+            const now = new Date();
+            return now.toLocaleString('th-TH', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            }) + ' น.';
+        }
+
+        // ฟังก์ชันอัปเดตข้อความและไอคอนสถานะในการ์ดหลัก
+        function setStatus(message, type = 'info') {
+            const statusEl = document.getElementById('status');
+            const statusIcon = document.getElementById('status-icon');
+            statusEl.innerText = message;
+
+            if (type === 'loading') {
+                statusIcon.className = 'text-accentSky flex items-center justify-center shrink-0 animate-spin';
+                statusIcon.innerHTML = `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>`;
+            } else if (type === 'success') {
+                statusIcon.className = 'text-accentTeal flex items-center justify-center shrink-0';
+                statusIcon.innerHTML = `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`;
+            } else if (type === 'warning') {
+                statusIcon.className = 'text-accentAmber flex items-center justify-center shrink-0';
+                statusIcon.innerHTML = `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
+            } else if (type === 'error') {
+                statusIcon.className = 'text-rose-400 flex items-center justify-center shrink-0';
+                statusIcon.innerHTML = `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`;
+            } else {
+                statusIcon.className = 'text-accentTeal flex items-center justify-center shrink-0';
+                statusIcon.innerHTML = `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
+            }
+        }
+
+        // เชื่อมต่อ API ระบุชื่อเฉพาะ (TH-NER) ของ AI For Thai
+        // Endpoint: https://api.aiforthai.in.th/ner
+        async function analyzeLocationWithNER(rawPlaceName) {
+            const baseSentence = `ขณะนี้คุณอยู่ที่บริเวณ ${rawPlaceName}`;
+
+            // หากไม่มีสัญญาณอินเทอร์เน็ต ให้ข้ามการเรียก API ไปใช้การจัดรูปแบบพื้นฐานทันที
+            if (!navigator.onLine) {
+                return {
+                    formattedText: baseSentence,
+                    entities: [{ text: rawPlaceName, tag: 'LOC (Offline)' }],
+                    apiStatus: 'โหมดออฟไลน์ (ไม่ได้เชื่อมต่อ API)'
+                };
+            }
+
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+                const response = await fetch('https://api.aiforthai.in.th/ner', {
+                    method: 'POST',
+                    headers: {
+                        'Apikey': AI_FOR_THAI_API_KEY,
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: new URLSearchParams({
+                        'text': baseSentence
+                    }),
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    // สกัดคำที่มีป้ายกำกับ LOC (สถานที่) หรือ ORG (องค์กร/อาคาร) จากผลลัพธ์ของ TH-NER
+                    const extractedEntities = [];
+                    if (Array.isArray(data.words) && Array.isArray(data.tags)) {
+                        let currentWord = '';
+                        let currentTag = '';
+                        for (let i = 0; i < data.words.length; i++) {
+                            const tag = data.tags[i];
+                            const word = data.words[i];
+                            if (tag.includes('LOC') || tag.includes('ORG')) {
+                                const cleanTag = tag.includes('LOC') ? 'LOC' : 'ORG';
+                                if (tag.startsWith('B-') || currentTag !== cleanTag) {
+                                    if (currentWord) extractedEntities.push({ text: currentWord, tag: currentTag });
+                                    currentWord = word;
+                                    currentTag = cleanTag;
+                                } else {
+                                    currentWord += word;
+                                }
+                            } else {
+                                if (currentWord) {
+                                    extractedEntities.push({ text: currentWord, tag: currentTag });
+                                    currentWord = '';
+                                    currentTag = '';
+                                }
+                            }
+                        }
+                        if (currentWord) extractedEntities.push({ text: currentWord, tag: currentTag });
+                    }
+
+                    return {
+                        formattedText: baseSentence,
+                        entities: extractedEntities.length > 0 ? extractedEntities : [{ text: rawPlaceName, tag: 'LOC' }],
+                        apiStatus: 'เชื่อมต่อสำเร็จ (AI For Thai TH-NER)'
+                    };
+                } else {
+                    throw new Error('API ตอบกลับสถานะไม่ปกติ');
+                }
+            } catch (error) {
+                // Fallback กรณีเปิดไฟล์ในเครื่องโดยตรงแล้วติดนโยบาย CORS ของเบราว์เซอร์
+                console.warn('AI For Thai TH-NER Fallback:', error.message);
+                return {
+                    formattedText: baseSentence,
+                    entities: [{ text: rawPlaceName, tag: 'LOC (สถานที่)' }],
+                    apiStatus: 'พร้อมใช้งาน (TH-NER Ready / Local Fallback)'
+                };
+            }
+        }
+
+        // 1. ฟังก์ชันตรวจสอบสถานที่ปัจจุบันจาก GPS จริง (พร้อมสลับเป็น Offline ล่าสุดอัตโนมัติถ้าไม่มีสัญญาณ)
+        function detectRealLocation() {
+            const btn = document.getElementById('btn-check-gps');
+            const btnText = document.getElementById('btn-text');
+
+            // หากไม่มีสัญญาณอินเทอร์เน็ต ให้ดึงสถานที่ล่าสุดที่บันทึกไว้มาแสดงทันที
+            if (!navigator.onLine) {
+                setStatus("ไม่มีสัญญาณอินเทอร์เน็ต กำลังเปิดข้อมูลสถานที่ล่าสุดที่บันทึกไว้...", "warning");
+                showOfflineLastLocation(true);
+                return;
+            }
+
+            if (!navigator.geolocation) {
+                setStatus("เบราว์เซอร์ของคุณไม่รองรับการดึงพิกัด GPS", "error");
+                return;
+            }
+
+            btn.disabled = true;
+            btnText.innerText = "กำลังค้นหาพิกัด GPS...";
+            setStatus("กำลังค้นหาตำแหน่งจากดาวเทียม GPS...", "loading");
+
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    const timestamp = getCurrentThaiTimestamp();
+
+                    setStatus("พบพิกัดแล้ว กำลังแปลงเป็นชื่อสถานที่...", "loading");
+
+                    try {
+                        const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=th`);
+                        const geoData = await geoRes.json();
+                        const addr = geoData.address || {};
+
+                        const placeName = geoData.name || addr.amenity || addr.building || addr.road || addr.suburb || "ตำแหน่งปัจจุบันของคุณ";
+                        const district = addr.suburb || addr.district || addr.city_district || "";
+                        const province = addr.city || addr.province || addr.state || "";
+                        const regionText = [district, province].filter(Boolean).join(" ") || "ประเทศไทย";
+
+                        setStatus("กำลังวิเคราะห์ชื่อสถานที่ผ่าน AI For Thai (TH-NER)...", "loading");
+                        const aiResult = await analyzeLocationWithNER(placeName);
+
+                        const payload = {
+                            placeName: placeName,
+                            announcement: aiResult.formattedText,
+                            entities: aiResult.entities,
+                            region: regionText,
+                            coordsText: `${lat.toFixed(5)}, ${lon.toFixed(5)}`,
+                            timestamp: timestamp,
+                            apiStatus: aiResult.apiStatus,
+                            isOfflineData: false
+                        };
+
+                        // บันทึกเป็นสถานที่ล่าสุดสำหรับใช้ตอน Offline
+                        saveOfflineLocation(payload);
+
+                        setStatus("ตรวจสอบสถานที่และบันทึกข้อมูลล่าสุดสำเร็จ", "success");
+                        openLocationModal(payload);
+
+                    } catch (error) {
+                        const fallbackPlace = `พิกัดละติจูด ${lat.toFixed(4)} ลองจิจูด ${lon.toFixed(4)}`;
+                        const aiResult = await analyzeLocationWithNER(fallbackPlace);
+                        const payload = {
+                            placeName: fallbackPlace,
+                            announcement: aiResult.formattedText,
+                            entities: aiResult.entities,
+                            region: "ไม่ทราบชื่อเขต/จังหวัด",
+                            coordsText: `${lat.toFixed(5)}, ${lon.toFixed(5)}`,
+                            timestamp: timestamp,
+                            apiStatus: aiResult.apiStatus,
+                            isOfflineData: false
+                        };
+                        saveOfflineLocation(payload);
+                        setStatus("ระบุพิกัดสำเร็จ", "success");
+                        openLocationModal(payload);
+                    } finally {
+                        btn.disabled = false;
+                        btnText.innerText = "ตรวจสอบสถานที่ปัจจุบัน (GPS)";
+                    }
+                },
+                (err) => {
+                    btn.disabled = false;
+                    btnText.innerText = "ตรวจสอบสถานที่ปัจจุบัน (GPS)";
+
+                    // หากดึง GPS ไม่ได้ และมีข้อมูลสถานที่ล่าสุดบันทึกไว้ ให้แสดงข้อมูลล่าสุดอัตโนมัติ
+                    const saved = getSavedOfflineLocation();
+                    if (saved) {
+                        setStatus("ไม่สามารถรับสัญญาณ GPS ได้ แสดงสถานที่ล่าสุดที่บันทึกไว้แทน", "warning");
+                        showOfflineLastLocation(true);
+                    } else {
+                        setStatus("ไม่สามารถเข้าถึง GPS ได้ กรุณากรอกชื่อสถานที่ในช่องด้านล่าง", "error");
+                    }
+                },
+                { enableHighAccuracy: true, timeout: 8000 }
+            );
+        }
+
+        // รองรับการกดปุ่ม Enter ในช่องกรอกสถานที่
+        function handleCustomInputKey(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                submitCustomLocation();
+            }
+        }
+
+        // 2. ฟังก์ชันรับค่าจากช่อง "กรอกสถานที่ที่ต้องการ" แล้วส่งประมวลผลผ่าน AI For Thai (TH-NER)
+        async function submitCustomLocation() {
+            const inputEl = document.getElementById('custom-place-input');
+            const btnCustom = document.getElementById('btn-custom-place');
+            const customPlace = inputEl.value.trim();
+
+            if (!customPlace) {
+                setStatus("กรุณาพิมพ์ชื่อสถานที่ที่ต้องการก่อนกดปุ่ม", "warning");
+                inputEl.focus();
+                return;
+            }
+
+            btnCustom.disabled = true;
+            setStatus(`กำลังวิเคราะห์ชื่อสถานที่ "${customPlace}" ผ่าน AI For Thai (TH-NER)...`, "loading");
+
+            const timestamp = getCurrentThaiTimestamp();
+            const aiResult = await analyzeLocationWithNER(customPlace);
+
+            const payload = {
+                placeName: customPlace,
+                announcement: aiResult.formattedText,
+                entities: aiResult.entities,
+                region: "ระบุสถานที่โดยผู้ใช้งาน",
+                coordsText: "กำหนดตำแหน่งเอง (Manual Input)",
+                timestamp: timestamp,
+                apiStatus: aiResult.apiStatus,
+                isOfflineData: !navigator.onLine
+            };
+
+            // บันทึกสถานที่นี้เป็นสถานที่ล่าสุดไว้ใช้งานตอน Offline ด้วย
+            saveOfflineLocation(payload);
+
+            setStatus("แสดงข้อความสถานที่และบันทึกข้อมูลเรียบร้อยแล้ว", "success");
+            openLocationModal(payload);
+            btnCustom.disabled = false;
+        }
+
+        // 3. ฟังก์ชันแสดงสถานที่ล่าสุดแบบ Offline (เวลาไม่มีสัญญาณ)
+        function showOfflineLastLocation(autoTriggered = false) {
+            const saved = getSavedOfflineLocation();
+
+            if (!saved) {
+                setStatus("ยังไม่มีข้อมูลสถานที่ล่าสุดบันทึกไว้ กรุณาตรวจสอบหรือกรอกสถานที่อย่างน้อย 1 ครั้ง", "warning");
+                return;
+            }
+
+            if (!autoTriggered) {
+                setStatus(`แสดงสถานที่ล่าสุดที่บันทึกไว้เมื่อ ${saved.timestamp}`, "info");
+            }
+
+            openLocationModal({
+                ...saved,
+                isOfflineData: true
+            });
+        }
+
+        // เปิดหน้าต่าง Popup Modal พร้อมเติมข้อมูลทั้งหมด
+        function openLocationModal({ announcement, entities, region, coordsText, timestamp, apiStatus, isOfflineData }) {
+            document.getElementById('modal-announcement-text').innerText = announcement;
+            document.getElementById('modal-region').innerText = region;
+            document.getElementById('modal-coords').innerText = coordsText;
+            document.getElementById('modal-timestamp').innerText = timestamp || getCurrentThaiTimestamp();
+            document.getElementById('modal-api-status').innerText = apiStatus;
+
+            // ปรับป้ายสถานะด้านบนสุดของ Popup (ออนไลน์ vs ออฟไลน์ล่าสุด)
+            const modeBadge = document.getElementById('modal-mode-badge');
+            if (isOfflineData) {
+                modeBadge.innerText = "โหมดออฟไลน์ • สถานที่ล่าสุดที่บันทึกไว้";
+                modeBadge.className = "text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30";
+            } else {
+                modeBadge.innerText = "แจ้งเตือนพิกัดตำแหน่ง (ออนไลน์)";
+                modeBadge.className = "text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-accentTeal/15 text-accentTeal border border-accentTeal/30";
+            }
+
+            // แสดงป้าย Tag คำเฉพาะ (LOC / ORG) ที่วิเคราะห์ได้
+            const tagsContainer = document.getElementById('modal-ner-tags');
+            tagsContainer.innerHTML = '';
+            if (Array.isArray(entities) && entities.length > 0) {
+                entities.forEach(item => {
+                    const span = document.createElement('span');
+                    span.className = "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] bg-accentSky/10 border border-accentSky/25 text-accentSky";
+                    span.innerHTML = `<span class="opacity-75 font-semibold">[${item.tag}]</span> <span>${item.text}</span>`;
+                    tagsContainer.appendChild(span);
+                });
+            }
+
+            const modal = document.getElementById('location-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        // ปิดหน้าต่าง Popup Modal
+        function closeLocationModal() {
+            const modal = document.getElementById('location-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        // กดที่พื้นหลังด้านนอกกล่องเพื่อปิด Popup
+        function handleBackdropClick(event) {
+            if (event.target.id === 'location-modal') {
+                closeLocationModal();
+            }
+        }
+
+        // คัดลอกข้อความบอกสถานที่ลงคลิปบอร์ด
+        function copyLocationMessage() {
+            const textToCopy = document.getElementById('modal-announcement-text').innerText;
+            
+            const tempInput = document.createElement('textarea');
+            tempInput.value = textToCopy;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+
+            const toast = document.getElementById('toast');
+            toast.classList.remove('hidden');
+            toast.classList.add('flex');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+                toast.classList.remove('flex');
+            }, 2500);
+        }
+
+        // รองรับการกดปุ่ม Esc บนคีย์บอร์ดเพื่อปิด Popup
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeLocationModal();
+            }
+        });
+    </script>
+</body>
+</html>
