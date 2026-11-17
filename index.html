@@ -9,7 +9,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#141821">
 
-    <title>ระบบบอกสถานที่ &amp; Person Detection - Location Announcer</title>
+    <title>ระบบบอกสถานที่ &amp; นำทางออฟไลน์ - Location Announcer</title>
     <!-- โหลด Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- โหลดฟอนต์ Prompt -->
@@ -112,7 +112,7 @@
                 <div>
                     <h1 class="text-lg sm:text-xl font-semibold text-textMain tracking-tight">ระบบบอกสถานที่</h1>
                     <p class="text-xs text-textMuted mt-0.5 flex items-center gap-1.5">
-                        <span>Location &amp; Person Detect</span>
+                        <span>Location &amp; Offline Route</span>
                         <span class="w-1 h-1 rounded-full bg-textMuted/50"></span>
                         <span class="text-accentTeal font-medium">AI For Thai</span>
                     </p>
@@ -128,7 +128,7 @@
 
         <!-- คำอธิบายสั้นๆ -->
         <p class="mt-4 text-xs sm:text-sm text-textMuted leading-relaxed">
-            ตรวจสอบพิกัดปัจจุบัน, ถ่ายรูปเพื่อระบุสถานที่และตรวจจับบุคคลผ่าน <span class="text-textMain font-medium">AI For Thai (Person Detection &amp; TH-NER)</span> พร้อมแสดง Minimap
+            ตรวจสอบพิกัดปัจจุบัน, ถ่ายรูปเพื่อระบุสถานที่และตรวจจับบุคคลผ่าน <span class="text-textMain font-medium">AI For Thai (Person Detection &amp; TH-NER)</span> พร้อมระบบนำทางระบุจุดเริ่มต้น–ปลายทางแบบออฟไลน์
         </p>
 
         <!-- ส่วนที่ 1: ปุ่มดึงพิกัด GPS จริง -->
@@ -159,7 +159,7 @@
         <!-- ส่วนที่ 2: กรอกสถานที่ที่ต้องการ -->
         <section class="mt-4 pt-4 border-t border-borderSubtle/80">
             <label for="custom-place-input" class="block text-xs font-medium text-textMuted mb-2">
-                หรือกรอกชื่อสถานที่ที่ต้องการ:
+                หรือกรอกชื่อสถานที่ที่ต้องการ (ตั้งเป็นจุดหมายปลายทาง):
             </label>
             <div class="flex flex-col sm:flex-row gap-2">
                 <input type="text" id="custom-place-input" 
@@ -220,11 +220,11 @@
     </main>
 
     <!-- ===================================================================== -->
-    <!-- POPUP MODAL: แสดงผลรูปถ่าย + Person Detection + Minimap + นำทางออฟไลน์ -->
+    <!-- POPUP MODAL: แสดงผลรูปถ่าย + Person Detection + Minimap + นำทางระบุต้นทาง-ปลายทาง -->
     <!-- ===================================================================== -->
     <div id="location-modal" onclick="handleBackdropClick(event)" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/75 backdrop-blur-sm p-3 sm:p-4 transition-opacity">
         
-        <div class="w-full max-w-[450px] bg-cardBg border border-borderSubtle rounded-3xl p-5 sm:p-6 shadow-2xl transform transition-all max-h-[94dvh] overflow-y-auto" onclick="event.stopPropagation()">
+        <div class="w-full max-w-[460px] bg-cardBg border border-borderSubtle rounded-3xl p-5 sm:p-6 shadow-2xl transform transition-all max-h-[94dvh] overflow-y-auto" onclick="event.stopPropagation()">
             
             <!-- ส่วนหัว Popup -->
             <div class="flex flex-col items-center text-center">
@@ -304,7 +304,7 @@
             </div>
 
             <!-- ================================================================= -->
-            <!-- ระบบนำทางแบบไม่ง้ออินเทอร์เน็ต หรือ GPS (Offline Compass & Step Nav) -->
+            <!-- ระบบนำทางออฟไลน์ (ระบุชัดเจน: เริ่มจากไหน ➔ ไปที่ไหน) -->
             <!-- ================================================================= -->
             <div class="mt-3.5 bg-panelBg/95 border border-accentAmber/35 rounded-2xl p-3.5">
                 <div class="flex items-center justify-between gap-2 mb-2.5">
@@ -313,7 +313,7 @@
                             <circle cx="12" cy="12" r="10"></circle>
                             <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
                         </svg>
-                        <span class="text-xs font-semibold text-accentAmber">นำทางออฟไลน์ (ไม่ใช้เน็ต / ไม่ใช้ GPS)</span>
+                        <span class="text-xs font-semibold text-accentAmber">นำทางออฟไลน์ (ระบุต้นทาง – ปลายทาง)</span>
                     </div>
                     <button type="button" id="btn-toggle-offline-nav" onclick="toggleOfflineNavigation()" 
                         class="text-[11px] px-2.5 py-1 rounded-lg bg-accentAmber/15 hover:bg-accentAmber/25 border border-accentAmber/40 text-accentAmber font-medium transition-colors cursor-pointer">
@@ -321,8 +321,64 @@
                     </button>
                 </div>
 
-                <!-- แผงควบคุมเข็มทิศและนับก้าวเดิน (Dead Reckoning) -->
+                <!-- แผงแสดงเส้นทาง (จุดเริ่มต้น ➔ จุดหมายปลายทาง) + เข็มทิศ -->
                 <div id="offline-nav-panel" class="hidden pt-2.5 border-t border-borderSubtle/70 space-y-3">
+                    
+                    <!-- การ์ดแสดงเส้นทาง: เริ่มจากไหน -> ไปที่ไหน -->
+                    <div class="bg-cardBg/90 rounded-xl p-3 border border-borderSubtle/70 space-y-2 text-xs">
+                        <div class="flex items-start gap-2.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-accentSky mt-1 shrink-0 ring-4 ring-accentSky/15"></span>
+                            <div class="min-w-0 flex-grow">
+                                <span class="text-[10px] text-textMuted block">จุดเริ่มต้น (Origin):</span>
+                                <span id="nav-origin-name" class="text-textMain font-medium block truncate">-</span>
+                                <span id="nav-origin-coords" class="text-[10px] text-textMuted font-mono block">-</span>
+                            </div>
+                        </div>
+
+                        <div class="border-l-2 border-dashed border-borderSubtle ml-1 pl-4 py-0.5 text-[10px] text-accentAmber flex items-center justify-between">
+                            <span>เส้นทางคำนวณออฟไลน์ (Bearing &amp; Distance)</span>
+                            <button type="button" onclick="toggleRouteEditor()" class="text-accentSky hover:underline cursor-pointer">
+                                ✎ แก้ไขจุดเริ่มต้น/ปลายทาง
+                            </button>
+                        </div>
+
+                        <div class="flex items-start gap-2.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-accentTeal mt-1 shrink-0 ring-4 ring-accentTeal/15"></span>
+                            <div class="min-w-0 flex-grow">
+                                <span class="text-[10px] text-textMuted block">จุดหมายปลายทาง (Destination):</span>
+                                <span id="nav-dest-name" class="text-accentTeal font-semibold block truncate">-</span>
+                                <span id="nav-dest-coords" class="text-[10px] text-textMuted font-mono block">-</span>
+                            </div>
+                        </div>
+
+                        <!-- ฟอร์มแก้ไขจุดเริ่มต้น - จุดหมายปลายทาง (ใช้ได้แม้ไม่มีเน็ต) -->
+                        <div id="route-editor-box" class="hidden pt-2.5 mt-2 border-t border-borderSubtle/70 space-y-2">
+                            <div>
+                                <label class="text-[10px] text-textMuted block mb-1">เปลี่ยนจุดเริ่มต้น (เลือกจากรายการหรือพิมพ์เอง):</label>
+                                <div class="flex gap-1.5">
+                                    <input type="text" id="input-nav-origin" placeholder="เช่น มหาวิทยาลัยเอเชียอาคเนย์, MRT หลักสอง..." 
+                                        class="flex-grow bg-panelBg border border-borderSubtle rounded-lg px-2.5 py-1.5 text-xs text-textMain focus:outline-none focus:border-accentSky">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-textMuted block mb-1">เปลี่ยนจุดหมายปลายทาง:</label>
+                                <div class="flex gap-1.5">
+                                    <input type="text" id="input-nav-dest" placeholder="เช่น เดอะมอลล์ บางแค, MRT หัวลำโพง..." 
+                                        class="flex-grow bg-panelBg border border-borderSubtle rounded-lg px-2.5 py-1.5 text-xs text-textMain focus:outline-none focus:border-accentTeal">
+                                </div>
+                            </div>
+                            <div class="flex justify-end gap-1.5 pt-1">
+                                <button type="button" onclick="swapOriginDestination()" class="px-2.5 py-1.5 rounded-lg bg-panelBg border border-borderSubtle text-textMuted hover:text-textMain text-[11px] cursor-pointer">
+                                    ⇅ สลับต้นทาง-ปลายทาง
+                                </button>
+                                <button type="button" onclick="applyCustomOfflineRoute()" class="px-3 py-1.5 rounded-lg bg-accentTeal text-[#0f172a] font-semibold text-[11px] cursor-pointer">
+                                    คำนวณเส้นทางใหม่
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- เข็มทิศและระยะทางคงเหลือ -->
                     <div class="flex items-center gap-3.5 bg-cardBg/80 rounded-xl p-3 border border-borderSubtle/60">
                         <div class="w-14 h-14 rounded-full bg-panelBg border-2 border-accentAmber/40 flex items-center justify-center relative shrink-0 shadow-inner">
                             <span class="absolute top-0.5 text-[9px] font-bold text-rose-400">N</span>
@@ -336,7 +392,7 @@
 
                         <div class="flex-grow min-w-0 text-xs space-y-1">
                             <div class="flex items-center justify-between">
-                                <span class="text-textMuted">ทิศทางเป้าหมาย:</span>
+                                <span class="text-textMuted">มุ่งหน้าไปทาง:</span>
                                 <span id="nav-bearing-text" class="text-accentSky font-semibold">ทิศเหนือ (0°)</span>
                             </div>
                             <div class="flex items-center justify-between">
@@ -345,7 +401,7 @@
                             </div>
                             <div class="flex items-center justify-between">
                                 <span class="text-textMuted">สถานะเซ็นเซอร์:</span>
-                                <span id="nav-sensor-status" class="text-textMain text-[11px]">คำนวณจากจุดล่าสุด</span>
+                                <span id="nav-sensor-status" class="text-textMain text-[11px]">คำนวณพิกัดต้นทาง–ปลายทาง</span>
                             </div>
                         </div>
                     </div>
@@ -412,10 +468,27 @@
 
     <script>
         const OFFLINE_STORAGE_KEY = "location_announcer_last_saved_v1";
+        const OFFLINE_HISTORY_KEY = "location_announcer_history_v1";
         let currentModalData = null;
 
-        // ตัวแปรสำหรับระบบนำทางแบบไม่ง้อเน็ตหรือ GPS (Offline Dead Reckoning)
+        // ฐานข้อมูลพิกัดสถานที่สำคัญในตัว (ใช้ค้นหาพิกัดต้นทาง-ปลายทางได้ทันทีแม้ไม่มีอินเทอร์เน็ต)
+        const OFFLINE_LANDMARKS = [
+            { name: "มหาวิทยาลัยเอเชียอาคเนย์", lat: 13.70692, lng: 100.35634 },
+            { name: "ธนาคารธนชาต สาขาเพชรเกษม", lat: 13.71300, lng: 100.43650 },
+            { name: "เดอะมอลล์ บางแค", lat: 13.71355, lng: 100.40872 },
+            { name: "MRT หลักสอง", lat: 13.71321, lng: 100.40985 },
+            { name: "MRT บางแค", lat: 13.71285, lng: 100.42274 },
+            { name: "MRT ภาษีเจริญ", lat: 13.71332, lng: 100.43572 },
+            { name: "ซีคอน บางแค", lat: 13.71368, lng: 100.43451 },
+            { name: "MRT หัวลำโพง", lat: 13.73775, lng: 100.51691 },
+            { name: "สยามพารากอน", lat: 13.74624, lng: 100.53474 },
+            { name: "อนุสาวรีย์ชัยสมรภูมิ", lat: 13.76492, lng: 100.53829 }
+        ];
+
+        // ตัวแปรสำหรับระบบนำทางระบุ จุดเริ่มต้น -> จุดหมายปลายทาง
         let isOfflineNavActive = false;
+        let navOrigin = { name: "จุดเริ่มต้นปัจจุบัน", lat: 13.70692, lng: 100.35634 };
+        let navDestination = { name: "จุดหมายปลายทาง", lat: 13.71300, lng: 100.43650 };
         let navTargetBearing = 35;
         let navDeviceHeading = 0;
         let navRemainingMeters = 120;
@@ -455,14 +528,24 @@
 
         function saveLastLocationOffline(locationPayload) {
             try {
-                // ไม่เก็บรูป Base64 ขนาดใหญ่ลง localStorage เพื่อป้องกันหน่วยความจำเต็ม
                 const { photoDataUrl, detectionBoxes, ...cleanPayload } = locationPayload;
+                const savedTime = new Date().toLocaleString('th-TH', {
+                    day: '2-digit', month: 'short', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
+                });
+
+                // เก็บประวัติสถานที่ก่อนหน้าไว้เป็น "จุดเริ่มต้น" อัตโนมัติเมื่อผู้ใช้ค้นหาสถานที่ใหม่
+                const prevRaw = localStorage.getItem(OFFLINE_STORAGE_KEY);
+                if (prevRaw) {
+                    const prev = JSON.parse(prevRaw);
+                    if (prev.placeQuery && prev.placeQuery !== cleanPayload.placeQuery) {
+                        localStorage.setItem(OFFLINE_HISTORY_KEY, JSON.stringify(prev));
+                    }
+                }
+
                 const dataToSave = {
                     ...cleanPayload,
-                    savedAt: new Date().toLocaleString('th-TH', {
-                        day: '2-digit', month: 'short', year: 'numeric',
-                        hour: '2-digit', minute: '2-digit'
-                    })
+                    savedAt: savedTime
                 };
                 localStorage.setItem(OFFLINE_STORAGE_KEY, JSON.stringify(dataToSave));
                 updateOfflineBadgeUI();
@@ -488,15 +571,15 @@
             const raw = localStorage.getItem(OFFLINE_STORAGE_KEY);
             if (!raw) {
                 const fallbackOfflineData = {
-                    announcement: "ขณะนี้คุณอยู่ที่บริเวณ จุดเริ่มต้นออฟไลน์ (Offline Base)",
-                    placeQuery: "กรุงเทพมหานคร",
-                    region: "โหมดออฟไลน์ไม่มีสัญญาณ GPS",
-                    coordsText: "13.73670, 100.53310 (Cached)",
-                    lat: 13.73670,
-                    lng: 100.53310,
+                    announcement: "ขณะนี้คุณอยู่ที่บริเวณ ธนาคารธนชาต สาขาเพชรเกษม",
+                    placeQuery: "ธนาคารธนชาต สาขาเพชรเกษม",
+                    region: "เขตภาษีเจริญ กรุงเทพมหานคร",
+                    coordsText: "13.71300, 100.43650 (Offline)",
+                    lat: 13.71300,
+                    lng: 100.43650,
                     timestamp: new Date().toLocaleString('th-TH', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
                     apiStatus: 'โหมดออฟไลน์ (ไม่ใช้เน็ต / ไม่ใช้ GPS)',
-                    entities: [{ word: 'จุดเริ่มต้นออฟไลน์', tag: 'LOC (Offline)' }],
+                    entities: [{ word: 'ธนาคารธนชาต สาขาเพชรเกษม', tag: 'LOC (Offline)' }],
                     isOfflineMode: true
                 };
                 openLocationModal(fallbackOfflineData, true);
@@ -563,7 +646,6 @@
             input.click();
         }
 
-        // ย่อขนาดรูปภาพและแปลงเป็น JPEG Base64 ตามสเปกของ AI For Thai (รองรับเฉพาะ .jpg/.jpeg)
         function compressImageToJpegBase64(file, maxWidth = 800) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -595,7 +677,6 @@
             });
         }
 
-        // เรียก API /api/person-detect (AI For Thai: https://api.aiforthai.in.th/person/human_detect/)
         async function detectPersonInPhoto(jpegDataUrl) {
             if (!navigator.onLine) {
                 return { count: 0, boxes: [], statusText: 'ออฟไลน์ (บันทึกรูปถ่ายไว้ในเครื่อง)' };
@@ -616,7 +697,6 @@
                 if (!res.ok) throw new Error('Person Detection API ตอบกลับไม่สำเร็จ');
                 const data = await res.json();
 
-                // รองรับรูปแบบ JSON response จาก AI For Thai Person Detection
                 let boxes = [];
                 if (Array.isArray(data.human_detect)) {
                     boxes = data.human_detect;
@@ -644,7 +724,6 @@
             }
         }
 
-        // ดึงพิกัด GPS ปัจจุบันแบบ Promise (พร้อม Fallback ไปใช้พิกัดล่าสุดหากไม่มี GPS)
         function getQuickCurrentCoords() {
             return new Promise((resolve) => {
                 if (!navigator.geolocation || !navigator.onLine) {
@@ -686,10 +765,8 @@
             setStatus('กำลังประมวลผลรูปถ่ายผ่าน AI For Thai (Person Detection) และระบุพิกัดสถานที่...', 'loading');
 
             try {
-                // 1. แปลงรูปเป็น JPEG Base64
                 const compressed = await compressImageToJpegBase64(file, 800);
 
-                // 2. รันคู่ขนาน: ส่งรูปเข้า Person Detection API + ดึงพิกัดสถานที่
                 const [personResult, coordsInfo] = await Promise.all([
                     detectPersonInPhoto(compressed.dataUrl),
                     getQuickCurrentCoords()
@@ -731,7 +808,6 @@
                     if (manualInput) placeName = manualInput;
                 }
 
-                // 3. สกัดชื่อสถานที่ด้วย TH-NER
                 const aiNerResult = await analyzeLocationWithTHNER(placeName);
                 const personSummary = personResult.count > 0
                     ? ` (ตรวจพบบุคคลในภาพ ${personResult.count} คน)`
@@ -775,7 +851,6 @@
             }
         }
 
-        // วาดรูปภาพและตีกรอบสีเขียวมิ้นต์รอบบุคคลที่ AI For Thai ตรวจพบ
         function renderPhotoDetectionCanvas(photoDataUrl, boxes, personCount) {
             const section = document.getElementById('photo-detection-section');
             const badge = document.getElementById('person-count-badge');
@@ -796,7 +871,6 @@
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0);
 
-                // วาดกรอบ Bounding Box หาก API ส่งพิกัดกรอบกลับมา
                 if (Array.isArray(boxes) && boxes.length > 0) {
                     ctx.strokeStyle = '#5eead4';
                     ctx.lineWidth = Math.max(3, Math.round(img.width / 180));
@@ -1017,28 +1091,13 @@
             btnCustom.disabled = true;
             setStatus(`กำลังวิเคราะห์ "${customPlace}" ผ่าน AI For Thai (TH-NER)...`, "loading");
 
-            let foundLat = null;
-            let foundLng = null;
-            let foundRegion = "ระบุสถานที่ด้วยตนเอง (Manual Input)";
-            let coordsLabel = "ค้นหาพิกัดจากชื่อสถานที่";
-
-            if (navigator.onLine) {
-                try {
-                    const searchRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(customPlace)}&limit=1&accept-language=th`);
-                    const searchData = await searchRes.json();
-                    if (Array.isArray(searchData) && searchData.length > 0) {
-                        foundLat = parseFloat(searchData[0].lat);
-                        foundLng = parseFloat(searchData[0].lon);
-                        coordsLabel = `${foundLat.toFixed(5)}, ${foundLng.toFixed(5)}`;
-                        const parts = searchData[0].display_name.split(',').map(s => s.trim());
-                        if (parts.length >= 2) {
-                            foundRegion = parts.slice(1, 3).join(' ');
-                        }
-                    }
-                } catch (e) {
-                    console.warn('ค้นหาพิกัดสถานที่เพิ่มเติมไม่สำเร็จ:', e);
-                }
-            }
+            const resolved = await resolvePlaceCoordinates(customPlace);
+            const foundLat = resolved ? resolved.lat : null;
+            const foundLng = resolved ? resolved.lng : null;
+            const foundRegion = resolved?.region || "ระบุสถานที่ด้วยตนเอง (Manual Input)";
+            const coordsLabel = (foundLat !== null && foundLng !== null)
+                ? `${foundLat.toFixed(5)}, ${foundLng.toFixed(5)}`
+                : "ค้นหาพิกัดจากชื่อสถานที่";
 
             const aiResult = await analyzeLocationWithTHNER(customPlace);
             const nowStr = new Date().toLocaleString('th-TH', {
@@ -1064,6 +1123,47 @@
             openLocationModal(payload, !navigator.onLine);
 
             btnCustom.disabled = false;
+        }
+
+        // ค้นหาพิกัดสถานที่จากทั้งฐานข้อมูลออฟไลน์ในเครื่อง และ OpenStreetMap (ถ้ามีเน็ต)
+        async function resolvePlaceCoordinates(placeName) {
+            if (!placeName) return null;
+            const clean = placeName.trim().toLowerCase();
+
+            // 1. เช็กจากฐานข้อมูลสถานที่ในเครื่องก่อน (ทำงานได้ 100% แม้ไม่มีเน็ต)
+            const localMatch = OFFLINE_LANDMARKS.find(item =>
+                item.name.toLowerCase().includes(clean) || clean.includes(item.name.toLowerCase())
+            );
+            if (localMatch) {
+                return { name: localMatch.name, lat: localMatch.lat, lng: localMatch.lng, region: "ฐานข้อมูลพิกัดออฟไลน์" };
+            }
+
+            // 2. เช็กจากประวัติที่เคยบันทึกในเครื่อง
+            const savedRaw = localStorage.getItem(OFFLINE_STORAGE_KEY);
+            if (savedRaw) {
+                const saved = JSON.parse(savedRaw);
+                if (saved.lat && saved.lng && saved.placeQuery && saved.placeQuery.toLowerCase().includes(clean)) {
+                    return { name: saved.placeQuery, lat: saved.lat, lng: saved.lng, region: saved.region };
+                }
+            }
+
+            // 3. หากออนไลน์ ให้ค้นหาพิกัดจาก OpenStreetMap
+            if (navigator.onLine) {
+                try {
+                    const searchRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(placeName)}&limit=1&accept-language=th`);
+                    const searchData = await searchRes.json();
+                    if (Array.isArray(searchData) && searchData.length > 0) {
+                        const lat = parseFloat(searchData[0].lat);
+                        const lng = parseFloat(searchData[0].lon);
+                        const parts = searchData[0].display_name.split(',').map(s => s.trim());
+                        const region = parts.length >= 2 ? parts.slice(1, 3).join(' ') : "ประเทศไทย";
+                        return { name: placeName, lat, lng, region };
+                    }
+                } catch (e) {
+                    console.warn('ค้นหาพิกัดออนไลน์ไม่สำเร็จ:', e);
+                }
+            }
+            return null;
         }
 
         // แสดง Minimap ด้วย Google Maps Embed
@@ -1093,7 +1193,7 @@
         }
 
         // =====================================================================
-        // ระบบนำทางออฟไลน์ (Offline Compass & Step Dead-Reckoning Navigation)
+        // ระบบนำทางออฟไลน์ (ระบุชัดเจน: เริ่มจากไหน ➔ ไปที่ไหน + คำนวณระยะและทิศจริง)
         // =====================================================================
         function toggleOfflineNavigation(forceOpen = null) {
             const panel = document.getElementById('offline-nav-panel');
@@ -1111,16 +1211,43 @@
             }
         }
 
+        function toggleRouteEditor() {
+            const editor = document.getElementById('route-editor-box');
+            editor.classList.toggle('hidden');
+        }
+
         function initOfflineCompassAndRoute() {
-            if (currentModalData && currentModalData.lat && currentModalData.lng) {
-                const seed = Math.abs(Math.round((currentModalData.lat + currentModalData.lng) * 1000));
-                navTargetBearing = seed % 360;
-                navRemainingMeters = 80 + (seed % 150);
-            } else {
-                navTargetBearing = 45;
-                navRemainingMeters = 120;
+            // 1. ตั้งค่าจุดหมายปลายทาง (Destination) จากสถานที่ปัจจุบันใน Popup
+            if (currentModalData) {
+                navDestination = {
+                    name: currentModalData.placeQuery || "จุดหมายปลายทาง",
+                    lat: currentModalData.lat ?? 13.71300,
+                    lng: currentModalData.lng ?? 100.43650
+                };
             }
-            updateOfflineNavUI();
+
+            // 2. ตั้งค่าจุดเริ่มต้น (Origin) จากตำแหน่งล่าสุดที่เคยบันทึกไว้ก่อนหน้า
+            const prevRaw = localStorage.getItem(OFFLINE_HISTORY_KEY);
+            if (prevRaw) {
+                const prev = JSON.parse(prevRaw);
+                navOrigin = {
+                    name: `${prev.placeQuery} (จุดล่าสุดก่อนหน้า)`,
+                    lat: prev.lat ?? 13.70692,
+                    lng: prev.lng ?? 100.35634
+                };
+            } else {
+                navOrigin = {
+                    name: "มหาวิทยาลัยเอเชียอาคเนย์ (จุดเริ่มต้นอ้างอิง)",
+                    lat: 13.70692,
+                    lng: 100.35634
+                };
+            }
+
+            // เติมชื่อลงในช่องแก้ไขเผื่อผู้ใช้ต้องการปรับเปลี่ยน
+            document.getElementById('input-nav-origin').value = navOrigin.name.replace(' (จุดล่าสุดก่อนหน้า)', '').replace(' (จุดเริ่มต้นอ้างอิง)', '');
+            document.getElementById('input-nav-dest').value = navDestination.name;
+
+            recalculateRouteFromCoords();
 
             if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
                 DeviceOrientationEvent.requestPermission()
@@ -1128,11 +1255,84 @@
                         if (state === 'granted') attachDeviceOrientation();
                     })
                     .catch(() => {
-                        document.getElementById('nav-sensor-status').innerText = 'โหมดคำนวณทิศทางจำลอง';
+                        document.getElementById('nav-sensor-status').innerText = 'คำนวณทิศจากพิกัดต้นทาง–ปลายทาง';
                     });
             } else if (window.DeviceOrientationEvent) {
                 attachDeviceOrientation();
             }
+        }
+
+        // คำนวณระยะทางจริง (Haversine Formula) และทิศทาง (Bearing) จากจุดเริ่มต้น -> จุดหมาย
+        function recalculateRouteFromCoords() {
+            document.getElementById('nav-origin-name').innerText = navOrigin.name;
+            document.getElementById('nav-origin-coords').innerText = `พิกัด: ${navOrigin.lat.toFixed(5)}, ${navOrigin.lng.toFixed(5)}`;
+
+            document.getElementById('nav-dest-name').innerText = navDestination.name;
+            document.getElementById('nav-dest-coords').innerText = `พิกัด: ${navDestination.lat.toFixed(5)}, ${navDestination.lng.toFixed(5)}`;
+
+            const toRad = (deg) => (deg * Math.PI) / 180;
+            const toDeg = (rad) => (rad * 180) / Math.PI;
+
+            const lat1 = toRad(navOrigin.lat);
+            const lat2 = toRad(navDestination.lat);
+            const dLat = toRad(navDestination.lat - navOrigin.lat);
+            const dLon = toRad(navDestination.lng - navOrigin.lng);
+
+            // Haversine Distance (เมตร)
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                      Math.cos(lat1) * Math.cos(lat2) *
+                      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            const earthRadiusMeters = 6371000;
+            const distanceMeters = Math.round(earthRadiusMeters * c);
+
+            // Initial Bearing (0-359 องศา)
+            const y = Math.sin(dLon) * Math.cos(lat2);
+            const x = Math.cos(lat1) * Math.sin(lat2) -
+                      Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+            const bearing = Math.round((toDeg(Math.atan2(y, x)) + 360) % 360);
+
+            navTargetBearing = bearing;
+            navRemainingMeters = distanceMeters > 0 ? distanceMeters : 150;
+            updateOfflineNavUI();
+        }
+
+        async function applyCustomOfflineRoute() {
+            const originInput = document.getElementById('input-nav-origin').value.trim();
+            const destInput = document.getElementById('input-nav-dest').value.trim();
+
+            if (!originInput || !destInput) {
+                showToast('กรุณากรอกทั้งจุดเริ่มต้นและจุดหมายปลายทาง');
+                return;
+            }
+
+            const [originRes, destRes] = await Promise.all([
+                resolvePlaceCoordinates(originInput),
+                resolvePlaceCoordinates(destInput)
+            ]);
+
+            navOrigin = originRes
+                ? { name: originInput, lat: originRes.lat, lng: originRes.lng }
+                : { name: `${originInput} (พิกัดอ้างอิง)`, lat: 13.70692, lng: 100.35634 };
+
+            navDestination = destRes
+                ? { name: destInput, lat: destRes.lat, lng: destRes.lng }
+                : { name: `${destInput} (พิกัดอ้างอิง)`, lat: 13.71355, lng: 100.40872 };
+
+            recalculateRouteFromCoords();
+            document.getElementById('route-editor-box').classList.add('hidden');
+            showToast(`คำนวณเส้นทาง: ${navOrigin.name} ➔ ${navDestination.name}`);
+        }
+
+        function swapOriginDestination() {
+            const temp = { ...navOrigin };
+            navOrigin = { ...navDestination };
+            navDestination = temp;
+
+            document.getElementById('input-nav-origin').value = navOrigin.name;
+            document.getElementById('input-nav-dest').value = navDestination.name;
+            recalculateRouteFromCoords();
+            showToast('สลับจุดเริ่มต้นและจุดหมายปลายทางแล้ว');
         }
 
         function attachDeviceOrientation() {
@@ -1161,6 +1361,13 @@
             return dirs[idx];
         }
 
+        function formatDistanceTH(meters) {
+            if (meters >= 1000) {
+                return `${(meters / 1000).toFixed(2)} กม. (${meters.toLocaleString()} ม.)`;
+            }
+            return `${meters} เมตร`;
+        }
+
         function updateOfflineNavUI() {
             const needle = document.getElementById('compass-needle');
             const bearingText = document.getElementById('nav-bearing-text');
@@ -1176,17 +1383,18 @@
                 distText.innerText = 'ถึงจุดหมายแล้ว! (0 ม.)';
                 distText.className = 'text-emerald-400 font-mono font-bold';
             } else {
-                distText.innerText = `${navRemainingMeters} เมตร`;
+                distText.innerText = formatDistanceTH(navRemainingMeters);
                 distText.className = 'text-accentTeal font-mono font-semibold';
             }
         }
 
         function simulateWalkStep() {
             if (navRemainingMeters > 0) {
-                navRemainingMeters = Math.max(0, navRemainingMeters - 10);
+                const stepSize = navRemainingMeters > 1000 ? 100 : 10;
+                navRemainingMeters = Math.max(0, navRemainingMeters - stepSize);
                 updateOfflineNavUI();
                 if (navRemainingMeters === 0) {
-                    showToast('🎉 เดินทางถึงสถานที่เป้าหมายเรียบร้อยแล้ว!');
+                    showToast(`🎉 เดินทางถึง "${navDestination.name}" เรียบร้อยแล้ว!`);
                 }
             } else {
                 showToast('คุณอยู่ที่จุดหมายปลายทางแล้ว');
@@ -1208,12 +1416,8 @@
             document.getElementById('modal-timestamp').innerText = data.timestamp || '-';
             document.getElementById('modal-api-status').innerText = data.apiStatus;
 
-            // แสดงภาพถ่าย + กรอบตรวจจับบุคคล (ถ้าเป็นการถ่ายรูป/อัปโหลดรูป)
             renderPhotoDetectionCanvas(data.photoDataUrl, data.detectionBoxes, data.personCount);
-
-            // แสดง Minimap ด้วย Google Maps Embed ทันที
             renderAlwaysVisibleMinimap(data.lat, data.lng, data.placeQuery, data.coordsText);
-
             toggleOfflineNavigation(autoOpenOfflineNav);
 
             const modeBadge = document.getElementById('modal-badge-mode');
@@ -1268,6 +1472,10 @@
                 ? `\nแผนที่: https://www.google.com/maps/search/?api=1&query=${mapQuery}`
                 : '';
 
+            const routeLine = isOfflineNavActive
+                ? `\nเส้นทางออฟไลน์: ${navOrigin.name} ➔ ${navDestination.name} (ระยะทาง ${formatDistanceTH(navRemainingMeters)}, ทิศ ${navTargetBearing}°)`
+                : '';
+
             const fullTextToCopy = [
                 `📍 แจ้งเตือนพิกัดตำแหน่ง`,
                 `${currentModalData.announcement}`,
@@ -1276,7 +1484,7 @@
                 `เขต / รายละเอียด: ${currentModalData.region}`,
                 `พิกัด (Lat, Lng): ${currentModalData.coordsText}`,
                 `เวลาที่บันทึกข้อมูล: ${currentModalData.timestamp || '-'}`,
-                `สถานะระบบ / API: ${currentModalData.apiStatus}${mapUrlLine}`
+                `สถานะระบบ / API: ${currentModalData.apiStatus}${routeLine}${mapUrlLine}`
             ].join('\n');
 
             if (navigator.clipboard && window.isSecureContext) {
