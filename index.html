@@ -8,18 +8,18 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#0b0f17">
 
-    <title>Smart Blind Guide — ระบบนำทาง &amp; เตือนสิ่งกีดขวางและป้าย</title>
+    <title>Smart Blind Guide — นำทาง • เตือนป้ายเตือน &amp; สิ่งกีดขวาง • SOS</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- TensorFlow.js & COCO-SSD สำหรับตรวจจับวัตถุ สัตว์ รถ ไฟจราจร ป้าย และของใช้ -->
+    <!-- TensorFlow.js & COCO-SSD สำหรับตรวจจับวัตถุ สัตว์ รถ ไฟจราจร ป้ายหยุด และของใช้ -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
-    <!-- Tesseract.js สำหรับอ่านป้ายสถานที่ ป้ายรถเมล์ และป้ายเตือนภาษาไทย/อังกฤษ -->
+    <!-- Tesseract.js สำหรับอ่านป้ายเตือนต่างๆ และป้ายรถเมล์ -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <!-- ฟอนต์ Prompt -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <script>
         tailwind.config = {
@@ -103,7 +103,7 @@
     <div class="luxury-overlay" aria-hidden="true"></div>
 
     <!-- Toast แจ้งเตือน -->
-    <div id="toast" role="status" aria-live="polite" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] hidden items-center gap-2.5 bg-surfaceElevated border border-goldAccent/40 text-textPrimary px-5 py-3 rounded-full shadow-2xl text-sm whitespace-nowrap">
+    <div id="toast" role="status" aria-live="polite" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[70] hidden items-center gap-2.5 bg-surfaceElevated border border-goldAccent/40 text-textPrimary px-5 py-3 rounded-full shadow-2xl text-sm whitespace-nowrap">
         <span class="w-2 h-2 rounded-full bg-goldAccent"></span>
         <span id="toast-msg">ดำเนินการเรียบร้อย</span>
     </div>
@@ -112,17 +112,17 @@
     <main class="w-full max-w-[470px] bg-surface/92 backdrop-blur-xl border border-borderLuxury rounded-[32px] p-5 sm:p-7 shadow-[0_24px_60px_rgba(0,0,0,0.65)]">
         
         <!-- ส่วนหัว -->
-        <header class="flex items-center justify-between gap-3 pb-5 border-b border-borderLuxury">
-            <div class="flex items-center gap-3.5">
-                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-goldAccent/20 to-tealAccent/10 border border-goldAccent/35 flex items-center justify-center text-goldAccent shrink-0" aria-hidden="true">
+        <header class="flex items-center justify-between gap-3 pb-4 border-b border-borderLuxury">
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-goldAccent/20 to-tealAccent/10 border border-goldAccent/35 flex items-center justify-center text-goldAccent shrink-0" aria-hidden="true">
                     <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
                         <circle cx="12" cy="10" r="3"></circle>
                     </svg>
                 </div>
                 <div>
-                    <h1 class="text-xl font-semibold text-textPrimary tracking-tight">Smart Blind Guide</h1>
-                    <p class="text-xs text-textSecondary mt-0.5">นำทางรถไฟฟ้า • ค้นหาด้วยเสียง • เตือนป้าย &amp; สิ่งกีดขวาง</p>
+                    <h1 class="text-lg sm:text-xl font-semibold text-textPrimary tracking-tight">Smart Blind Guide</h1>
+                    <p class="text-[11px] text-textSecondary mt-0.5">นำทาง • เตือนป้ายเตือน &amp; สิ่งกีดขวาง • SOS</p>
                 </div>
             </div>
 
@@ -135,12 +135,28 @@
         </header>
 
         <!-- ปุ่มฟังก์ชันหลักขนาดใหญ่ -->
-        <section class="mt-5 space-y-3" aria-label="เมนูคำสั่งหลัก">
+        <section class="mt-4 space-y-2.5" aria-label="เมนูคำสั่งหลัก">
             
-            <!-- ปุ่ม 1: ส่องกล้องเตือนสิ่งกีดขวาง & อ่านป้ายต่างๆ -->
+            <!-- ปุ่ม 0: SOS ขอความช่วยเหลือฉุกเฉิน -->
+            <button type="button" id="btn-open-sos" onclick="hapticSosAlert(); openSosEmergencyModal()" 
+                aria-label="ปุ่ม SOS ขอความช่วยเหลือฉุกเฉิน ส่งพิกัดและโทรฉุกเฉิน"
+                class="w-full min-h-[62px] px-5 py-3 rounded-2xl bg-gradient-to-r from-red-600/35 to-rose-600/25 hover:from-red-600/45 hover:to-rose-600/35 active:scale-[0.99] border-2 border-red-500/70 text-left flex items-center justify-between gap-3 transition-all cursor-pointer shadow-lg shadow-red-950/30">
+                <div class="flex items-center gap-3.5">
+                    <div class="w-11 h-11 rounded-xl bg-red-500 text-white font-bold text-sm flex items-center justify-center shrink-0 shadow-md" aria-hidden="true">
+                        SOS
+                    </div>
+                    <div>
+                        <span class="block text-base font-bold text-red-200">SOS ขอความช่วยเหลือ</span>
+                        <span class="block text-xs text-red-200/80 mt-0.5">ส่งพิกัดให้ญาติทันที • โทรฉุกเฉิน 1669 / 191</span>
+                    </div>
+                </div>
+                <span class="text-xl shrink-0" aria-hidden="true">🚨</span>
+            </button>
+
+            <!-- ปุ่ม 1: ส่องกล้องเตือนสิ่งกีดขวาง & ป้ายเตือน/ป้ายรถเมล์ -->
             <button type="button" id="btn-open-hazard-cam" onclick="hapticTap(); openHazardScannerModal()" 
-                aria-label="ส่องกล้องเตือนสิ่งกีดขวาง ป้ายเตือน ป้ายรถเมล์ และป้ายสถานที่"
-                class="w-full min-h-[64px] px-5 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400/20 to-goldAccent/15 hover:from-amber-400/30 hover:to-goldAccent/25 active:scale-[0.99] border border-goldAccent/45 text-left flex items-center gap-4 transition-all cursor-pointer shadow-lg shadow-black/20">
+                aria-label="ส่องกล้องเตือนสิ่งกีดขวาง ป้ายเตือนต่างๆ และป้ายรถเมล์"
+                class="w-full min-h-[62px] px-5 py-3 rounded-2xl bg-gradient-to-r from-amber-400/20 to-goldAccent/15 hover:from-amber-400/30 hover:to-goldAccent/25 active:scale-[0.99] border border-goldAccent/45 text-left flex items-center gap-4 transition-all cursor-pointer shadow-lg shadow-black/20">
                 <div class="w-11 h-11 rounded-xl bg-goldAccent/20 border border-goldAccent/40 flex items-center justify-center text-goldAccent shrink-0" aria-hidden="true">
                     <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
@@ -149,14 +165,14 @@
                 </div>
                 <div>
                     <span class="block text-base font-semibold text-goldAccent">ส่องกล้องเตือนสิ่งกีดขวาง &amp; ป้าย</span>
-                    <span class="block text-xs text-textSecondary mt-0.5">คน • สัตว์ • รถ • ป้ายเตือน • ป้ายรถเมล์ • ป้ายสถานที่</span>
+                    <span class="block text-xs text-textSecondary mt-0.5">คน • สัตว์ • รถ • ป้ายเตือนต่างๆ • ป้ายรถเมล์</span>
                 </div>
             </button>
 
             <!-- ปุ่ม 2: บอกสถานที่ปัจจุบัน & นำทาง -->
             <button type="button" id="btn-check-gps" onclick="hapticTap(); detectRealLocation()" 
                 aria-label="บอกสถานที่ปัจจุบันและเปิดระบบนำทาง"
-                class="w-full min-h-[64px] px-5 py-3.5 rounded-2xl bg-textPrimary hover:bg-white active:scale-[0.99] disabled:bg-surfaceElevated disabled:text-textSecondary text-obsidian text-left flex items-center gap-4 transition-all cursor-pointer disabled:cursor-not-allowed shadow-lg shadow-white/5">
+                class="w-full min-h-[60px] px-5 py-3 rounded-2xl bg-textPrimary hover:bg-white active:scale-[0.99] disabled:bg-surfaceElevated disabled:text-textSecondary text-obsidian text-left flex items-center gap-4 transition-all cursor-pointer disabled:cursor-not-allowed shadow-lg shadow-white/5">
                 <div class="w-11 h-11 rounded-xl bg-obsidian/10 flex items-center justify-center text-obsidian shrink-0" aria-hidden="true">
                     <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="7"></circle>
@@ -173,12 +189,12 @@
                 </div>
             </button>
 
-            <!-- ปุ่ม 3: ถ่ายภาพสถานที่ & สั่งงานด้วยเสียง (จัดคู่ปุ่มใหญ่) -->
+            <!-- ปุ่ม 3: ถ่ายภาพสถานที่ & สั่งงานด้วยเสียง -->
             <div class="grid grid-cols-2 gap-2.5">
                 <input type="file" id="camera-photo-input" accept="image/*" capture="environment" class="hidden" onchange="handlePlacePhotoCapture(event)">
                 <button type="button" id="btn-capture-photo" onclick="hapticTap(); triggerCameraCapture()" 
                     aria-label="ถ่ายภาพสถานที่พร้อมระบุตำแหน่ง"
-                    class="min-h-[60px] px-3.5 py-3 rounded-2xl bg-surfaceElevated/90 hover:bg-surfaceElevated active:scale-[0.99] border border-tealAccent/35 text-left flex items-center gap-2.5 transition-all cursor-pointer">
+                    class="min-h-[58px] px-3.5 py-2.5 rounded-2xl bg-surfaceElevated/90 hover:bg-surfaceElevated active:scale-[0.99] border border-tealAccent/35 text-left flex items-center gap-2.5 transition-all cursor-pointer">
                     <span class="text-lg shrink-0" aria-hidden="true">📸</span>
                     <div>
                         <span id="btn-photo-text" class="block text-xs sm:text-sm font-semibold text-tealAccent">ถ่ายภาพสถานที่</span>
@@ -187,75 +203,146 @@
                 </button>
 
                 <button type="button" id="btn-voice-cmd" onclick="hapticTap(); startThaiVoiceCommand()" 
-                    aria-label="สั่งงานด้วยเสียงพูดภาษาไทย เช่น พูดชื่อวัด โรงพยาบาล หรือสถานีรถไฟฟ้า"
-                    class="min-h-[60px] px-3.5 py-3 rounded-2xl bg-surfaceElevated/90 hover:bg-surfaceElevated active:scale-[0.99] border border-rose-400/35 text-left flex items-center gap-2.5 transition-all cursor-pointer">
+                    aria-label="สั่งงานด้วยเสียงพูดภาษาไทย เช่น พูดชื่อสถานที่ หรือขอความช่วยเหลือ"
+                    class="min-h-[58px] px-3.5 py-2.5 rounded-2xl bg-surfaceElevated/90 hover:bg-surfaceElevated active:scale-[0.99] border border-rose-400/35 text-left flex items-center gap-2.5 transition-all cursor-pointer">
                     <span class="text-lg shrink-0" aria-hidden="true">🎙️</span>
                     <div>
                         <span id="voice-cmd-label" class="block text-xs sm:text-sm font-semibold text-rose-300">สั่งงานด้วยเสียง</span>
-                        <span class="block text-[10px] text-textSecondary">พูดชื่อสถานที่ได้เลย</span>
+                        <span class="block text-[10px] text-textSecondary">พูดชื่อสถานที่/คำสั่ง</span>
                     </div>
                 </button>
             </div>
         </section>
 
         <!-- ================================================================= -->
-        <!-- ส่วนที่ 2: เช็คพิกัดขึ้น-ลงรถไฟฟ้า BTS / MRT / MRTA / BRT (กดเลือกทันที ไม่ต้องพิมพ์) -->
+        <!-- ส่วนที่ 2: เช็คพิกัดขึ้น-ลงรถไฟฟ้า BTS / MRT / MRTA / BRT -->
         <!-- ================================================================= -->
-        <section class="mt-5 pt-5 border-t border-borderLuxury" aria-label="เช็คพิกัดขึ้นลงรถไฟฟ้า BTS MRT MRTA BRT">
-            <div class="flex items-center justify-between gap-2 mb-3">
+        <section class="mt-4 pt-4 border-t border-borderLuxury" aria-label="เช็คพิกัดขึ้นลงรถไฟฟ้า BTS MRT MRTA BRT">
+            <div class="flex items-center justify-between gap-2 mb-2.5">
                 <div>
                     <h2 class="text-sm font-semibold text-goldAccent">เช็คพิกัดขึ้น-ลงรถไฟฟ้า (กดเลือกทันที)</h2>
                     <p class="text-[11px] text-textSecondary">BTS • MRT • MRTA • BRT พร้อมนำทาง</p>
                 </div>
                 <button type="button" id="btn-nearest-transit" onclick="hapticTap(); findNearestTransitStation()" 
                     aria-label="ค้นหาสถานีรถไฟฟ้าที่ใกล้ที่สุด"
-                    class="min-h-[40px] px-3 py-1.5 rounded-xl bg-tealAccent/15 hover:bg-tealAccent/25 border border-tealAccent/40 text-tealAccent text-xs font-semibold flex items-center gap-1.5 cursor-pointer shrink-0 transition-all">
+                    class="min-h-[38px] px-3 py-1.5 rounded-xl bg-tealAccent/15 hover:bg-tealAccent/25 border border-tealAccent/40 text-tealAccent text-xs font-semibold flex items-center gap-1.5 cursor-pointer shrink-0 transition-all">
                     <span>📍 ใกล้ฉันที่สุด</span>
                 </button>
             </div>
 
             <!-- แถบเลือกประเภทสายรถไฟฟ้า -->
-            <div class="grid grid-cols-5 gap-1.5 mb-3" role="tablist" aria-label="เลือกสายรถไฟฟ้า">
+            <div class="grid grid-cols-5 gap-1.5 mb-2.5" role="tablist" aria-label="เลือกสายรถไฟฟ้า">
                 <button type="button" onclick="hapticTap(); filterTransitSystem('ALL')" id="tab-transit-ALL"
-                    class="min-h-[42px] rounded-xl bg-goldAccent text-obsidian text-xs font-semibold cursor-pointer transition-all">
+                    class="min-h-[40px] rounded-xl bg-goldAccent text-obsidian text-xs font-semibold cursor-pointer transition-all">
                     ทั้งหมด
                 </button>
                 <button type="button" onclick="hapticTap(); filterTransitSystem('BTS')" id="tab-transit-BTS"
-                    class="min-h-[42px] rounded-xl bg-surfaceElevated border border-borderLuxury text-textPrimary text-xs font-medium cursor-pointer transition-all">
+                    class="min-h-[40px] rounded-xl bg-surfaceElevated border border-borderLuxury text-textPrimary text-xs font-medium cursor-pointer transition-all">
                     BTS
                 </button>
                 <button type="button" onclick="hapticTap(); filterTransitSystem('MRT')" id="tab-transit-MRT"
-                    class="min-h-[42px] rounded-xl bg-surfaceElevated border border-borderLuxury text-textPrimary text-xs font-medium cursor-pointer transition-all">
+                    class="min-h-[40px] rounded-xl bg-surfaceElevated border border-borderLuxury text-textPrimary text-xs font-medium cursor-pointer transition-all">
                     MRT
                 </button>
                 <button type="button" onclick="hapticTap(); filterTransitSystem('MRTA')" id="tab-transit-MRTA"
-                    class="min-h-[42px] rounded-xl bg-surfaceElevated border border-borderLuxury text-textPrimary text-xs font-medium cursor-pointer transition-all">
+                    class="min-h-[40px] rounded-xl bg-surfaceElevated border border-borderLuxury text-textPrimary text-xs font-medium cursor-pointer transition-all">
                     MRTA
                 </button>
                 <button type="button" onclick="hapticTap(); filterTransitSystem('BRT')" id="tab-transit-BRT"
-                    class="min-h-[42px] rounded-xl bg-surfaceElevated border border-borderLuxury text-textPrimary text-xs font-medium cursor-pointer transition-all">
+                    class="min-h-[40px] rounded-xl bg-surfaceElevated border border-borderLuxury text-textPrimary text-xs font-medium cursor-pointer transition-all">
                     BRT
                 </button>
             </div>
 
             <!-- รายการสถานีรถไฟฟ้าแบบกดเลือกได้ทันที -->
-            <div id="transit-stations-list" class="max-h-[210px] overflow-y-auto space-y-2 pr-1">
+            <div id="transit-stations-list" class="max-h-[190px] overflow-y-auto space-y-2 pr-1">
                 <!-- เติมรายการสถานีอัตโนมัติด้วย JavaScript -->
             </div>
         </section>
 
         <!-- แถบสถานะการทำงาน -->
-        <section class="mt-4 bg-obsidian/75 border border-borderLuxury rounded-2xl p-3.5" aria-live="polite">
+        <section class="mt-3.5 bg-obsidian/75 border border-borderLuxury rounded-2xl p-3" aria-live="polite">
             <div class="flex items-center gap-2.5 text-xs text-textSecondary">
                 <span class="w-2 h-2 rounded-full bg-goldAccent shrink-0" aria-hidden="true"></span>
-                <span id="status" class="leading-relaxed">พร้อมใช้งาน กดปุ่มสั่งงานด้วยเสียงพูดชื่อสถานที่ หรือเลือกสถานีรถไฟฟ้า</span>
+                <span id="status" class="leading-relaxed">พร้อมใช้งาน กดปุ่ม SOS ขอความช่วยเหลือ หรือเลือกเมนูด้านบน</span>
             </div>
         </section>
 
     </main>
 
     <!-- ===================================================================== -->
-    <!-- MODAL 1: กล้องส่องทางเตือนสิ่งกีดขวาง & อ่านป้ายเตือน ป้ายรถเมล์ ป้ายสถานที่ -->
+    <!-- MODAL 0: หน้าต่าง SOS ขอความช่วยเหลือฉุกเฉิน (ส่งพิกัด & โทรฉุกเฉิน) -->
+    <!-- ===================================================================== -->
+    <div id="sos-emergency-modal" role="dialog" aria-modal="true" aria-labelledby="sos-modal-title" onclick="closeSosEmergencyModal()" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/90 backdrop-blur-md p-4">
+        <div class="w-full max-w-[460px] bg-surface border-2 border-red-500/75 rounded-[32px] p-5 sm:p-6 shadow-2xl max-h-[94dvh] overflow-y-auto" onclick="event.stopPropagation()">
+            
+            <div class="flex items-center justify-between pb-3.5 border-b border-red-500/30">
+                <div class="flex items-center gap-2.5">
+                    <span class="px-2.5 py-1 rounded-lg bg-red-600 text-white text-xs font-bold">SOS</span>
+                    <h2 id="sos-modal-title" class="text-lg font-bold text-red-200">ขอความช่วยเหลือฉุกเฉิน</h2>
+                </div>
+                <button type="button" onclick="hapticTap(); closeSosEmergencyModal()" aria-label="ปิดหน้าต่าง SOS"
+                    class="min-w-[48px] min-h-[48px] rounded-2xl bg-surfaceElevated hover:bg-white/10 text-textPrimary text-base font-semibold flex items-center justify-center cursor-pointer border border-borderLuxury">
+                    ปิด
+                </button>
+            </div>
+
+            <!-- กล่องข้อความพิกัดฉุกเฉินพร้อมส่ง -->
+            <div class="mt-4 bg-red-950/45 border border-red-500/45 rounded-2xl p-4" aria-live="assertive">
+                <span class="text-xs font-semibold text-red-300 block">ข้อความแจ้งพิกัดขอความช่วยเหลือ:</span>
+                <p id="sos-message-preview" class="text-sm sm:text-base font-medium text-white mt-1.5 leading-relaxed">
+                    กำลังดึงพิกัด GPS ล่าสุดของคุณ...
+                </p>
+                <p id="sos-coords-badge" class="text-xs text-goldAccent font-mono mt-2">พิกัด: กำลังค้นหา...</p>
+            </div>
+
+            <!-- ปุ่มส่งขอความช่วยเหลือทันที -->
+            <div class="mt-4 space-y-2.5">
+                <button type="button" onclick="hapticSosAlert(); shareSosEmergencyLocation()" 
+                    aria-label="ส่งพิกัดขอความช่วยเหลือผ่าน LINE หรือแอปแชททันที"
+                    class="w-full min-h-[58px] px-4 py-3 rounded-2xl bg-red-600 hover:bg-red-500 active:scale-[0.99] text-white font-bold text-base flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-red-900/40">
+                    <span>📤 ส่งพิกัดขอความช่วยเหลือทันที</span>
+                </button>
+
+                <button type="button" onclick="hapticTap(); copySosEmergencyMessage()" 
+                    aria-label="คัดลอกข้อความขอความช่วยเหลือและลิงก์แผนที่"
+                    class="w-full min-h-[52px] px-4 py-2.5 rounded-2xl bg-surfaceElevated hover:bg-white/10 border border-red-400/40 text-red-200 font-semibold text-sm flex items-center justify-center gap-2 cursor-pointer">
+                    <span>📋 คัดลอกข้อความขอความช่วยเหลือ</span>
+                </button>
+            </div>
+
+            <!-- ปุ่มโทรฉุกเฉินด่วน -->
+            <div class="mt-4 pt-4 border-t border-borderLuxury">
+                <span class="text-xs font-medium text-textSecondary block mb-2.5">โทรสายด่วนฉุกเฉินทันที (แตะเพื่อโทร):</span>
+                <div class="grid grid-cols-2 gap-2.5">
+                    <a href="tel:1669" onclick="hapticSosAlert()" aria-label="โทร 1669 เจ็บป่วยฉุกเฉินและกู้ชีพ"
+                        class="min-h-[56px] px-3 py-2.5 rounded-2xl bg-emerald-600/25 hover:bg-emerald-600/35 border border-emerald-400/50 text-emerald-200 font-semibold text-sm flex flex-col items-center justify-center text-center">
+                        <span>🚑 โทร 1669</span>
+                        <span class="text-[10px] text-emerald-300/80">กู้ชีพ / เจ็บป่วยฉุกเฉิน</span>
+                    </a>
+
+                    <a href="tel:191" onclick="hapticSosAlert()" aria-label="โทร 191 แจ้งเหตุด่วนเหตุร้าย"
+                        class="min-h-[56px] px-3 py-2.5 rounded-2xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-amber-200 font-semibold text-sm flex flex-col items-center justify-center text-center">
+                        <span>🚓 โทร 191</span>
+                        <span class="text-[10px] text-amber-300/80">ตำรวจ / เหตุด่วนเหตุร้าย</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- เสียงไซเรนเรียกคนรอบข้าง -->
+            <div class="mt-3">
+                <button type="button" id="btn-sos-beep" onclick="triggerLoudHelpAnnouncement()" 
+                    aria-label="ส่งเสียงพูดขอความช่วยเหลือดังๆ ให้คนรอบข้างได้ยิน"
+                    class="w-full min-h-[50px] px-4 py-2.5 rounded-2xl bg-goldAccent text-obsidian font-bold text-sm flex items-center justify-center gap-2 cursor-pointer">
+                    <span>🔊 ส่งเสียงเรียกคนรอบข้างช่วยด้วย</span>
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL 1: กล้องส่องทางเตือนสิ่งกีดขวาง & อ่านป้ายเตือนต่างๆ และป้ายรถเมล์ -->
     <!-- ===================================================================== -->
     <div id="hazard-scanner-modal" role="dialog" aria-modal="true" aria-labelledby="hazard-modal-title" onclick="closeHazardScannerModal()" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/85 backdrop-blur-md p-4">
         <div class="w-full max-w-[460px] bg-surface border border-goldAccent/35 rounded-[32px] p-5 sm:p-6 shadow-2xl max-h-[94dvh] overflow-y-auto" onclick="event.stopPropagation()">
@@ -263,7 +350,7 @@
             <div class="flex items-center justify-between pb-4 border-b border-borderLuxury">
                 <div>
                     <h2 id="hazard-modal-title" class="text-lg font-semibold text-textPrimary">ส่องกล้องเตือนสิ่งกีดขวาง &amp; ป้าย</h2>
-                    <p class="text-xs text-textSecondary mt-0.5">คน • สัตว์ • รถ • ป้ายเตือน • ป้ายรถเมล์ • ป้ายสถานที่</p>
+                    <p class="text-xs text-textSecondary mt-0.5">คน • สัตว์ • รถ • ป้ายเตือนต่างๆ • ป้ายรถเมล์</p>
                 </div>
                 <button type="button" onclick="hapticTap(); closeHazardScannerModal()" aria-label="ปิดกล้องส่องทาง"
                     class="min-w-[48px] min-h-[48px] rounded-2xl bg-surfaceElevated hover:bg-white/10 text-textPrimary text-base font-semibold flex items-center justify-center cursor-pointer border border-borderLuxury">
@@ -275,6 +362,10 @@
             <div class="mt-4 relative w-full h-[230px] rounded-2xl overflow-hidden bg-obsidian border border-borderLuxury flex items-center justify-center">
                 <video id="hazard-video" autoplay playsinline muted class="w-full h-full object-cover"></video>
                 <canvas id="hazard-overlay-canvas" class="absolute inset-0 w-full h-full object-cover pointer-events-none"></canvas>
+                <!-- กรอบเล็งป้ายตรงกลางหน้าจอ -->
+                <div class="absolute inset-x-10 inset-y-8 border-2 border-dashed border-goldAccent/55 rounded-xl pointer-events-none flex items-end justify-center pb-1">
+                    <span class="text-[10px] bg-obsidian/80 text-goldAccent px-2 py-0.5 rounded">เล็งป้ายเตือนหรือป้ายรถเมล์ในกรอบนี้</span>
+                </div>
                 <div class="scanner-laser" aria-hidden="true"></div>
 
                 <div id="hazard-no-cam-msg" class="hidden absolute inset-0 bg-surface/95 flex flex-col items-center justify-center p-5 text-center">
@@ -291,7 +382,7 @@
             <!-- แท็กวัตถุและป้ายที่ตรวจพบ -->
             <div class="mt-3 bg-obsidian/70 border border-borderLuxury rounded-2xl p-3">
                 <div id="detected-objects-badges" class="flex flex-wrap gap-1.5 min-h-[26px] items-center">
-                    <span class="text-xs text-textSecondary">กำลังสแกนสิ่งกีดขวางและป้ายข้างหน้า...</span>
+                    <span class="text-xs text-textSecondary">กำลังสแกนสิ่งกีดขวาง ป้ายเตือน และป้ายรถเมล์...</span>
                 </div>
             </div>
 
@@ -305,16 +396,16 @@
                         class="min-h-[48px] px-3 py-2.5 rounded-xl bg-goldAccent text-obsidian font-semibold text-sm flex items-center justify-center gap-1.5 cursor-pointer">
                         <span>🔊 ฟังซ้ำ</span>
                     </button>
-                    <button type="button" onclick="hapticTap(); scanSignAndObjectsNow()" aria-label="สแกนสิ่งกีดขวางและอ่านป้ายทันที"
+                    <button type="button" onclick="hapticTap(); scanSignAndObjectsNow()" aria-label="สแกนสิ่งกีดขวางและอ่านป้ายเตือนทันที"
                         class="min-h-[48px] px-3 py-2.5 rounded-xl bg-obsidian hover:bg-white/5 border border-borderLuxury text-tealAccent font-medium text-sm flex items-center justify-center gap-1.5 cursor-pointer">
                         <span>🪧 อ่านป้าย/สแกนทันที</span>
                     </button>
                 </div>
             </div>
 
-            <!-- ปุ่มทดสอบจำลองสิ่งกีดขวางและป้ายต่างๆ -->
+            <!-- ปุ่มทดสอบจำลองป้ายเตือน ป้ายรถเมล์ และสิ่งกีดขวาง (ตัดป้ายสถานที่ออกแล้ว) -->
             <div class="mt-3.5 pt-3 border-t border-borderLuxury">
-                <p class="text-[11px] text-textSecondary mb-2">ทดสอบเสียงเตือนป้ายต่างๆ และสิ่งกีดขวาง:</p>
+                <p class="text-[11px] text-textSecondary mb-2">ทดสอบเสียงเตือนป้ายเตือน ป้ายรถเมล์ และสิ่งกีดขวาง:</p>
                 <div class="grid grid-cols-2 gap-2 text-xs">
                     <button type="button" onclick="hapticTap(); triggerSimulatedHazard('พบป้ายเตือน ระวังพื้นลื่นและเขตก่อสร้าง')" 
                         class="min-h-[44px] px-3 py-2 rounded-xl bg-obsidian hover:bg-white/5 border border-borderLuxury text-textPrimary text-left cursor-pointer">
@@ -324,13 +415,13 @@
                         class="min-h-[44px] px-3 py-2 rounded-xl bg-obsidian hover:bg-white/5 border border-borderLuxury text-textPrimary text-left cursor-pointer">
                         🚏 ป้ายรถเมล์
                     </button>
-                    <button type="button" onclick="hapticTap(); triggerSimulatedHazard('พบป้ายสถานที่ ด้านหน้าคือวัดหนองแขม')" 
+                    <button type="button" onclick="hapticTap(); triggerSimulatedHazard('ระวัง รถยนต์และมอเตอร์ไซค์ขวางทาง')" 
                         class="min-h-[44px] px-3 py-2 rounded-xl bg-obsidian hover:bg-white/5 border border-borderLuxury text-textPrimary text-left cursor-pointer">
-                        🏛️ ป้ายสถานที่
+                        🚗 รถยนต์ / มอเตอร์ไซค์
                     </button>
-                    <button type="button" onclick="hapticTap(); triggerSimulatedHazard('ระวัง รถยนต์และสุนัขขวางทาง')" 
+                    <button type="button" onclick="hapticTap(); triggerSimulatedHazard('ระวัง สุนัขและสิ่งกีดขวางข้างหน้า')" 
                         class="min-h-[44px] px-3 py-2 rounded-xl bg-obsidian hover:bg-white/5 border border-borderLuxury text-textPrimary text-left cursor-pointer">
-                        🚗 รถยนต์ / 🐕 สัตว์
+                        🐕 สัตว์ / สิ่งกีดขวาง
                     </button>
                 </div>
             </div>
@@ -467,6 +558,7 @@
         let userCurrentCoords = null;
         let liveNavWatchId = null;
         let isLiveNavRunning = false;
+        let currentSosFullMessage = "";
 
         // ฐานข้อมูลพิกัดจุดขึ้น-ลงรถไฟฟ้า BTS / MRT / MRTA / BRT
         const TRANSIT_STATIONS = [
@@ -500,7 +592,7 @@
             { system: 'BRT', line: 'สาทร–ราชพฤกษ์', name: 'BRT ราชพฤกษ์', exit: 'ทางเชื่อมสกายวอล์ก BTS ตลาดพลู', lat: 13.71452, lng: 100.47681 }
         ];
 
-        // พจนานุกรมแปลวัตถุ สัตว์ ยานพาหนะ สัญญาณไฟ ป้ายจราจร และของใช้ในบ้าน
+        // พจนานุกรมแปลวัตถุ สัตว์ ยานพาหนะ สัญญาณไฟ และป้ายหยุดจราจร (ไม่มีป้ายสถานที่)
         const OBJECT_THAI_MAP = {
             'person': { th: 'คน', icon: '🚶', danger: true },
             'bicycle': { th: 'จักรยาน', icon: '🚲', danger: true },
@@ -510,9 +602,9 @@
             'truck': { th: 'รถบรรทุก', icon: '🚚', danger: true },
             'traffic light': { th: 'สัญญาณไฟจราจร', icon: '🚦', danger: true },
             'fire hydrant': { th: 'หัวดับเพลิง', icon: '🧯', danger: true },
-            'stop sign': { th: 'ป้ายหยุดจราจร', icon: '🛑', danger: true },
-            'parking meter': { th: 'เสาป้ายจอดรถ/ป้ายริมทาง', icon: '🚏', danger: true },
-            'bench': { th: 'ม้านั่ง/จุดรอรถ', icon: '🪑', danger: true },
+            'stop sign': { th: 'ป้ายเตือนหยุดจราจร', icon: '🛑', danger: true },
+            'parking meter': { th: 'เสาป้ายเตือนริมทาง', icon: '⚠️', danger: true },
+            'bench': { th: 'ม้านั่ง/จุดรอรถเมล์', icon: '🚏', danger: true },
             'bird': { th: 'นก', icon: '🐦', danger: false },
             'cat': { th: 'แมว', icon: '🐈', danger: true },
             'dog': { th: 'สุนัข', icon: '🐕', danger: true },
@@ -530,32 +622,34 @@
             'potted plant': { th: 'กระถางต้นไม้', icon: '🪴', danger: true },
             'bed': { th: 'เตียง', icon: '🛏️', danger: true },
             'dining table': { th: 'โต๊ะ', icon: '🪵', danger: true },
-            'tv': { th: 'ป้ายจอภาพ/โทรทัศน์', icon: '📺', danger: false },
+            'tv': { th: 'จอภาพ', icon: '📺', danger: false },
             'laptop': { th: 'โน้ตบุ๊ก', icon: '💻', danger: false },
             'cell phone': { th: 'มือถือ', icon: '📱', danger: false },
             'refrigerator': { th: 'ตู้เย็น', icon: '🧊', danger: true },
             'scissors': { th: 'กรรไกร', icon: '✂️', danger: true }
         };
 
-        // คำสำคัญสำหรับจำแนกป้ายเตือน ป้ายรถเมล์ และป้ายสถานที่ จากข้อความบนป้าย (OCR)
-        const SIGN_CLASSIFICATION_RULES = [
-            {
-                type: 'ป้ายรถเมล์',
-                icon: '🚏',
-                danger: false,
-                keywords: ['ป้ายรถเมล์', 'ป้ายหยุดรถ', 'รถประจำทาง', 'bus stop', 'สาย', 'ขสมก', 'ท่ารถ']
-            },
+        // กฎการจำแนกป้ายเฉพาะ "ป้ายเตือนต่างๆ" และ "ป้ายรถเมล์" เท่านั้น (ตัดป้ายสถานที่ออก)
+        const STRICT_SIGN_RULES = [
             {
                 type: 'ป้ายเตือน',
                 icon: '⚠️',
                 danger: true,
-                keywords: ['ระวัง', 'เตือน', 'ห้าม', 'อันตราย', 'ก่อสร้าง', 'พื้นลื่น', 'ทางข้าม', 'หยุด', 'ลดความเร็ว', 'ซ่อมทาง', 'warning', 'caution', 'danger', 'stop', 'no entry']
+                keywords: [
+                    'ระวัง', 'เตือน', 'ห้าม', 'อันตราย', 'ก่อสร้าง', 'พื้นลื่น', 'ทางข้าม',
+                    'หยุด', 'ลดความเร็ว', 'ซ่อมทาง', 'ชำรุด', 'ต่างระดับ', 'ทางเบี่ยง',
+                    'ไฟฟ้าแรงสูง', 'เขตอันตราย', 'ห้ามเข้า', 'ทางตัน',
+                    'warning', 'caution', 'danger', 'stop', 'no entry', 'slippery', 'work'
+                ]
             },
             {
-                type: 'ป้ายสถานที่',
-                icon: '🏛️',
+                type: 'ป้ายรถเมล์',
+                icon: '🚏',
                 danger: false,
-                keywords: ['วัด', 'โรงพยาบาล', 'โรงเรียน', 'มหาวิทยาลัย', 'สถานี', 'สำนักงาน', 'ธนาคาร', 'ตลาด', 'ซอย', 'ถนน', 'ทางออก', 'ทางเข้า', 'ลิฟต์', 'ห้องน้ำ', 'bts', 'mrt', 'exit', 'station', 'temple', 'hospital']
+                keywords: [
+                    'ป้ายรถเมล์', 'ป้ายหยุดรถ', 'รถประจำทาง', 'รถเมล์', 'bus stop',
+                    'สาย', 'ขสมก', 'ท่ารถ', 'ปอ.', 'รถโดยสาร', 'ป้ายรถโดยสาร'
+                ]
             }
         ];
 
@@ -581,6 +675,12 @@
         function hapticTap() {
             if (navigator.vibrate) {
                 navigator.vibrate(35);
+            }
+        }
+
+        function hapticSosAlert() {
+            if (navigator.vibrate) {
+                navigator.vibrate([250, 100, 250, 100, 400]);
             }
         }
 
@@ -670,7 +770,103 @@
         }
 
         // =====================================================================
-        // 2. เช็คพิกัดขึ้น-ลงรถไฟฟ้า BTS / MRT / MRTA / BRT
+        // 2. ระบบ SOS ขอความช่วยเหลือฉุกเฉิน
+        // =====================================================================
+        async function openSosEmergencyModal() {
+            const modal = document.getElementById('sos-emergency-modal');
+            const previewEl = document.getElementById('sos-message-preview');
+            const coordsBadge = document.getElementById('sos-coords-badge');
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            previewEl.innerText = '🚨 ฉุกเฉิน! ฉันต้องการความช่วยเหลือ กำลังดึงพิกัดตำแหน่งปัจจุบัน...';
+            coordsBadge.innerText = 'พิกัด: กำลังค้นหา GPS...';
+
+            speakThaiText('เปิดโหมด SOS ขอความช่วยเหลือ กำลังดึงพิกัดของคุณ', true);
+
+            let lat = userCurrentCoords ? userCurrentCoords.lat : null;
+            let lng = userCurrentCoords ? userCurrentCoords.lng : null;
+            let placeSummary = '';
+
+            try {
+                const pos = await getMobileResilientPosition();
+                lat = pos.lat;
+                lng = pos.lng;
+            } catch (e) {}
+
+            if (lat !== null && lng !== null) {
+                const coordsStr = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+                const mapLink = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+                coordsBadge.innerText = `พิกัด GPS: ${coordsStr}`;
+
+                if (navigator.onLine) {
+                    try {
+                        const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=th`);
+                        const geoData = await geoRes.json();
+                        const addr = geoData.address || {};
+                        const name = geoData.name || addr.amenity || addr.building || addr.road || addr.suburb || '';
+                        const district = addr.suburb || addr.district || addr.city_district || '';
+                        placeSummary = [name, district].filter(Boolean).join(' ');
+                    } catch (e) {}
+                }
+
+                const locationLine = placeSummary ? `บริเวณ ${placeSummary} (${coordsStr})` : `พิกัด ${coordsStr}`;
+                currentSosFullMessage = `🚨 SOS ขอความช่วยเหลือด่วน! ฉันอยู่ที่ ${locationLine}\nดูแผนที่ตำแหน่ง: ${mapLink}`;
+                previewEl.innerText = currentSosFullMessage;
+                speakThaiText(`พร้อมส่งพิกัดขอความช่วยเหลือแล้ว คุณอยู่ที่ ${placeSummary || 'พิกัดปัจจุบัน'}`, true);
+            } else {
+                currentSosFullMessage = `🚨 SOS ขอความช่วยเหลือด่วน! ฉันต้องการความช่วยเหลือ (ไม่สามารถดึงพิกัด GPS ได้ กรุณาติดต่อกลับด่วน)`;
+                coordsBadge.innerText = 'พิกัด: ไม่พบสัญญาณ GPS (สามารถกดโทร 1669 หรือ 191 ได้ทันที)';
+                previewEl.innerText = currentSosFullMessage;
+                speakThaiText('ไม่สามารถจับสัญญาณ GPS ได้ สามารถกดปุ่มโทรฉุกเฉิน 1669 หรือ 191 ได้ทันทีครับ', true);
+            }
+        }
+
+        function closeSosEmergencyModal() {
+            stopAllSpeech();
+            const modal = document.getElementById('sos-emergency-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        async function shareSosEmergencyLocation() {
+            const textToShare = currentSosFullMessage || '🚨 SOS ขอความช่วยเหลือด่วน!';
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: 'SOS ขอความช่วยเหลือฉุกเฉิน',
+                        text: textToShare
+                    });
+                    showToast('เปิดหน้าต่างส่งพิกัดขอความช่วยเหลือแล้ว');
+                    return;
+                } catch (err) {
+                    if (err && err.name === 'AbortError') return;
+                }
+            }
+            // หากเบราว์เซอร์ไม่รองรับ Web Share API ให้คัดลอกข้อความให้อัตโนมัติ
+            copySosEmergencyMessage();
+        }
+
+        function copySosEmergencyMessage() {
+            const textToCopy = currentSosFullMessage || '🚨 SOS ขอความช่วยเหลือด่วน!';
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    showToast('คัดลอกข้อความ SOS และพิกัดเรียบร้อยแล้ว');
+                    speakThaiText('คัดลอกข้อความขอความช่วยเหลือและลิงก์แผนที่แล้ว นำไปวางส่งในแชทได้ทันทีครับ', true);
+                }).catch(() => fallbackCopy(textToCopy));
+            } else {
+                fallbackCopy(textToCopy);
+            }
+        }
+
+        function triggerLoudHelpAnnouncement() {
+            hapticSosAlert();
+            speakThaiText('ขอความช่วยเหลือด้วยครับ ฉันเป็นผู้พิการทางสายตา ต้องการความช่วยเหลือครับ', true);
+        }
+
+        // =====================================================================
+        // 3. เช็คพิกัดขึ้น-ลงรถไฟฟ้า BTS / MRT / MRTA / BRT
         // =====================================================================
         function filterTransitSystem(systemCode) {
             activeTransitFilter = systemCode;
@@ -679,9 +875,9 @@
                 const btn = document.getElementById(`tab-transit-${sys}`);
                 if (!btn) return;
                 if (sys === systemCode) {
-                    btn.className = 'min-h-[42px] rounded-xl bg-goldAccent text-obsidian text-xs font-semibold cursor-pointer transition-all';
+                    btn.className = 'min-h-[40px] rounded-xl bg-goldAccent text-obsidian text-xs font-semibold cursor-pointer transition-all';
                 } else {
-                    btn.className = 'min-h-[42px] rounded-xl bg-surfaceElevated border border-borderLuxury text-textPrimary text-xs font-medium cursor-pointer transition-all';
+                    btn.className = 'min-h-[40px] rounded-xl bg-surfaceElevated border border-borderLuxury text-textPrimary text-xs font-medium cursor-pointer transition-all';
                 }
             });
             renderTransitStationsList();
@@ -746,7 +942,7 @@
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.setAttribute('aria-label', `เลือกสถานี ${station.name} ${station.exit}`);
-                btn.className = 'w-full min-h-[58px] px-4 py-3 rounded-2xl bg-obsidian/80 hover:bg-surfaceElevated active:scale-[0.99] border border-borderLuxury flex items-center justify-between gap-3 text-left cursor-pointer transition-all';
+                btn.className = 'w-full min-h-[56px] px-4 py-2.5 rounded-2xl bg-obsidian/80 hover:bg-surfaceElevated active:scale-[0.99] border border-borderLuxury flex items-center justify-between gap-3 text-left cursor-pointer transition-all';
                 btn.onclick = () => {
                     hapticTap();
                     selectTransitStation(station);
@@ -820,7 +1016,7 @@
         }
 
         // =====================================================================
-        // 3. ระบบเสียงพูดภาษาไทย (พูดจบเป็นครั้งๆ ไป และคืน Promise เมื่อพูดจบ)
+        // 4. ระบบเสียงพูดภาษาไทย
         // =====================================================================
         function toggleVoiceAutoSpeak() {
             hapticTap();
@@ -895,7 +1091,7 @@
         }
 
         // =====================================================================
-        // 4. ระบบสั่งงานด้วยเสียงพูดภาษาไทย (แก้บั๊ก: ฟังชื่อสถานที่จริง เช่น "วัดหนองแขม" ไม่ไปค้นหา MRT มั่ว)
+        // 5. ระบบสั่งงานด้วยเสียงพูดภาษาไทย (รองรับชื่อสถานที่, รถไฟฟ้า, ส่องกล้อง, SOS)
         // =====================================================================
         async function searchAndNavigateToSpokenPlace(placeName) {
             setStatus(`กำลังค้นหาสถานที่ "${placeName}"...`);
@@ -908,7 +1104,6 @@
 
             if (navigator.onLine) {
                 try {
-                    // 1. ค้นหาพิกัดสถานที่ในประเทศไทยด้วย OpenStreetMap Nominatim
                     const queryWithThailand = placeName.includes('ไทย') ? placeName : `${placeName} ประเทศไทย`;
                     const searchRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(queryWithThailand)}&limit=1&accept-language=th`);
                     const searchData = await searchRes.json();
@@ -922,7 +1117,6 @@
                             foundRegion = parts.slice(1, 3).join(' ');
                         }
                     } else {
-                        // ลองค้นหาแบบตรงตัวอีกครั้งโดยไม่ต่อท้ายคำว่าประเทศไทย
                         const retryRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(placeName)}&limit=1&accept-language=th`);
                         const retryData = await retryRes.json();
                         if (Array.isArray(retryData) && retryData.length > 0) {
@@ -957,7 +1151,6 @@
             btnLabel.innerText = 'เตรียมไมค์...';
             setStatus('รอสักครู่ กำลังเปิดไมโครโฟนรับคำสั่งเสียง...');
 
-            // รอให้เสียงพูด "เชิญพูดครับ" จบก่อนเปิดไมโครโฟน เพื่อไม่ให้ไมค์ดูดเสียงลำโพงตัวเอง
             await speakThaiText('เชิญพูดชื่อสถานที่หรือคำสั่งครับ', true);
 
             const recognition = new SpeechRecognition();
@@ -966,7 +1159,7 @@
             recognition.maxAlternatives = 1;
 
             btnLabel.innerText = 'กำลังฟังเสียง...';
-            setStatus('กำลังฟังเสียงพูด... (เช่น "วัดหนองแขม", "โรงพยาบาล", "ส่องกล้อง")');
+            setStatus('กำลังฟังเสียงพูด... (เช่น "วัดหนองแขม", "ขอความช่วยเหลือ", "ส่องกล้อง")');
             if (navigator.vibrate) navigator.vibrate(50);
 
             recognition.onresult = (event) => {
@@ -974,10 +1167,15 @@
                 btnLabel.innerText = 'สั่งงานด้วยเสียง';
                 setStatus(`ได้ยินคำสั่ง: "${rawTranscript}"`);
 
-                // ตัดคำนำหน้าคำสั่งออกเพื่อให้ได้ชื่อสถานที่บริสุทธิ์
                 const cleanedText = rawTranscript
                     .replace(/^(นำทางไปที่|นำทางไป|พาไปที่|พาไป|ไปที่|ค้นหาสถานที่|ค้นหา|บอกพิกัด|บอกสถานที่|เช็คพิกัด)\s*/g, '')
                     .trim() || rawTranscript;
+
+                // 0. คำสั่งฉุกเฉิน SOS
+                if (rawTranscript.includes('ช่วยด้วย') || rawTranscript.includes('ขอความช่วยเหลือ') || rawTranscript.toLowerCase().includes('sos') || rawTranscript.includes('ฉุกเฉิน')) {
+                    openSosEmergencyModal();
+                    return;
+                }
 
                 // 1. คำสั่งเปิดกล้องส่องทาง
                 if (rawTranscript.includes('กล้อง') || rawTranscript.includes('สิ่งกีดขวาง') || rawTranscript.includes('ส่องทาง') || rawTranscript.includes('อ่านป้าย')) {
@@ -991,7 +1189,7 @@
                     return;
                 }
 
-                // 3. คำสั่งเช็กตำแหน่งปัจจุบัน ("ฉันอยู่ที่ไหน" / "สถานที่ปัจจุบัน")
+                // 3. คำสั่งเช็กตำแหน่งปัจจุบัน
                 if (
                     rawTranscript === 'สถานที่ปัจจุบัน' ||
                     rawTranscript === 'บอกสถานที่' ||
@@ -1002,13 +1200,13 @@
                     return;
                 }
 
-                // 4. คำสั่งหาสถานีรถไฟฟ้าใกล้ฉัน ("รถไฟฟ้าใกล้ฉัน")
+                // 4. คำสั่งหาสถานีรถไฟฟ้าใกล้ฉัน
                 if (rawTranscript.includes('รถไฟฟ้าใกล้ฉัน') || rawTranscript.includes('สถานีใกล้ฉัน')) {
                     findNearestTransitStation();
                     return;
                 }
 
-                // 5. ตรวจสอบว่าพูดชื่อสถานีรถไฟฟ้า BTS / MRT / MRTA / BRT ตรงๆ หรือไม่
+                // 5. ตรวจสอบชื่อสถานีรถไฟฟ้า BTS / MRT / MRTA / BRT
                 const isExplicitTransitKeyword = /^(bts|mrt|mrta|brt|บีทีเอส|เอ็มอาร์ที|บีอาร์ที|สถานี)/i.test(cleanedText);
                 const normalizedSpoken = cleanedText
                     .replace(/^(บีทีเอส|bts)\s*/i, 'BTS ')
@@ -1024,7 +1222,6 @@
                         return st.name.toLowerCase() === normalizedSpoken.toLowerCase() ||
                                stationShortName === normalizedSpoken.replace(/^(BTS|MRT|MRTA|BRT)\s*/i, '').trim();
                     }
-                    // ถ้าไม่ได้ขึ้นต้นด้วยคำว่า BTS/MRT/สถานี ต้องตรงกับชื่อสถานีทั้งหมดจริงๆ เท่านั้น
                     return st.name.toLowerCase() === cleanedText.toLowerCase();
                 });
 
@@ -1033,7 +1230,7 @@
                     return;
                 }
 
-                // 6. กรณีพูดชื่อสถานที่ทั่วไป เช่น "วัดหนองแขม", "ตลาดบางแค", "โรงพยาบาลศิริราช" -> ค้นหาสถานที่นั้นทันที!
+                // 6. ค้นหาชื่อสถานที่ทั่วไปที่ผู้ใช้พูด
                 searchAndNavigateToSpokenPlace(cleanedText);
             };
 
@@ -1054,7 +1251,7 @@
         }
 
         // =====================================================================
-        // 5. โหมดส่องกล้องเตือนสิ่งกีดขวาง & อ่านป้ายเตือน ป้ายรถเมล์ ป้ายสถานที่
+        // 6. โหมดส่องกล้องเตือนสิ่งกีดขวาง & อ่านป้ายเตือนต่างๆ และป้ายรถเมล์ (เสถียรขึ้น)
         // =====================================================================
         async function openHazardScannerModal() {
             const modal = document.getElementById('hazard-scanner-modal');
@@ -1069,7 +1266,7 @@
             lastSpokenHazardText = "";
             latestDetectedSignText = "";
 
-            speakThaiText('เปิดกล้องเตือนสิ่งกีดขวางและอ่านป้ายแล้ว', true);
+            speakThaiText('เปิดกล้องเตือนสิ่งกีดขวางและป้ายเตือนแล้ว', true);
 
             if (!cocoModel) {
                 await preloadCocoSsdModel();
@@ -1083,15 +1280,15 @@
                 video.srcObject = hazardStream;
 
                 video.onloadeddata = () => {
-                    scanStatus.innerText = 'สแกนวัตถุและป้ายพร้อมใช้งาน';
+                    scanStatus.innerText = 'สแกนวัตถุและป้ายเตือนพร้อมใช้งาน';
                     hazardScanInterval = setInterval(() => {
                         runFastHazardDetection(false);
-                    }, 600);
+                    }, 650);
 
-                    // รอบอ่านข้อความบนป้าย (ป้ายเตือน ป้ายรถเมล์ ป้ายสถานที่) ทุกๆ 2.8 วินาที
+                    // สแกนอ่านป้ายเตือนและป้ายรถเมล์ทุกๆ 3.2 วินาที (ให้เวลาประมวลผลภาพคมชัดไม่ค้าง)
                     signOcrInterval = setInterval(() => {
-                        runSignTextRecognition(false);
-                    }, 2800);
+                        runStabilizedSignOcr(false);
+                    }, 3200);
                 };
             } catch (err) {
                 noCamMsg.classList.remove('hidden');
@@ -1123,64 +1320,101 @@
 
         async function scanSignAndObjectsNow() {
             await runFastHazardDetection(true);
-            await runSignTextRecognition(true);
+            await runStabilizedSignOcr(true);
         }
 
-        // ฟังก์ชันอ่านข้อความบนป้าย (ป้ายเตือนต่างๆ ป้ายรถเมล์ ป้ายสถานที่) จากกล้องสด
-        async function runSignTextRecognition(manualTrigger = false) {
+        // ฟังก์ชันปรับภาพขาวดำความคมชัดสูงก่อนส่งเข้า OCR เพื่อให้อ่านป้ายเตือนและป้ายรถเมล์ได้แม่นยำขึ้นมาก
+        function captureHighContrastSignCanvas(video) {
+            const vw = video.videoWidth || 640;
+            const vh = video.videoHeight || 480;
+
+            // ครอปเฉพาะโซนตรงกลางของกล้อง (ลดสิ่งรบกวนรอบขอบภาพ)
+            const cropX = Math.round(vw * 0.12);
+            const cropY = Math.round(vh * 0.12);
+            const cropW = Math.round(vw * 0.76);
+            const cropH = Math.round(vh * 0.76);
+
+            const targetW = 480;
+            const targetH = Math.round((cropH / cropW) * targetW);
+
+            const canvas = document.createElement('canvas');
+            canvas.width = targetW;
+            canvas.height = targetH;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, targetW, targetH);
+
+            // แปลงเป็น Grayscale + เพิ่ม Contrast ให้ตัวหนังสือบนป้ายเด่นชัด
+            const imgData = ctx.getImageData(0, 0, targetW, targetH);
+            const data = imgData.data;
+            const contrastFactor = 1.45;
+            for (let i = 0; i < data.length; i += 4) {
+                const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+                let adjusted = ((gray - 128) * contrastFactor) + 128;
+                adjusted = Math.max(0, Math.min(255, adjusted));
+                data[i] = adjusted;
+                data[i + 1] = adjusted;
+                data[i + 2] = adjusted;
+            }
+            ctx.putImageData(imgData, 0, 0);
+            return canvas;
+        }
+
+        // อ่านเฉพาะ "ป้ายเตือนต่างๆ" และ "ป้ายรถเมล์" เท่านั้น พร้อมกรองความมั่นใจไม่ให้อ่านมั่ว
+        async function runStabilizedSignOcr(manualTrigger = false) {
             const video = document.getElementById('hazard-video');
             if (!video || !video.srcObject || video.readyState < 2) return;
             if (isOcrRunning || typeof Tesseract === 'undefined') return;
 
             isOcrRunning = true;
             try {
-                // จับภาพบริเวณตรงกลางและส่วนบนของกล้องซึ่งมักเป็นตำแหน่งของป้าย
-                const canvas = document.createElement('canvas');
-                const w = 480;
-                const h = 360;
-                canvas.width = w;
-                canvas.height = h;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(video, 0, 0, w, h);
-
-                const result = await Tesseract.recognize(canvas, 'tha+eng', {
+                const processedCanvas = captureHighContrastSignCanvas(video);
+                const result = await Tesseract.recognize(processedCanvas, 'tha+eng', {
                     logger: () => {}
                 });
 
+                const confidence = (result && result.data && typeof result.data.confidence === 'number')
+                    ? result.data.confidence
+                    : 0;
                 const rawText = (result && result.data && result.data.text) ? result.data.text : '';
-                // กรองเฉพาะตัวอักษรไทย/อังกฤษ/ตัวเลขที่มีความหมาย ลดอักขระขยะ
+
+                // กรองเฉพาะอักขระไทย อังกฤษ ตัวเลข ที่มีโครงสร้างคำชัดเจน
                 const cleanSignText = rawText
                     .replace(/[^\u0E00-\u0E7Fa-zA-Z0-9\s\-\/\.]/g, ' ')
                     .replace(/\s+/g, ' ')
                     .trim();
 
-                if (cleanSignText.length >= 3) {
+                // ต้องมีความมั่นใจ >= 48% (หรือกดสแกนเอง >= 35%) และข้อความยาวอย่างน้อย 3 ตัวอักษร
+                const minConfidence = manualTrigger ? 35 : 48;
+                if (confidence >= minConfidence && cleanSignText.length >= 3) {
                     const lowerText = cleanSignText.toLowerCase();
-                    let matchedRule = SIGN_CLASSIFICATION_RULES[2]; // ค่าเริ่มต้นเป็น "ป้ายสถานที่"
+                    let matchedRule = null;
 
-                    for (const rule of SIGN_CLASSIFICATION_RULES) {
+                    // ตรวจสอบเฉพาะป้ายเตือนต่างๆ และป้ายรถเมล์เท่านั้น (ไม่มีป้ายสถานที่)
+                    for (const rule of STRICT_SIGN_RULES) {
                         if (rule.keywords.some(kw => lowerText.includes(kw))) {
                             matchedRule = rule;
                             break;
                         }
                     }
 
-                    // ตัดข้อความบนป้ายให้สั้นกระชับไม่เกิน 40 ตัวอักษรเพื่อให้อ่านจบไว
-                    const shortSignContent = cleanSignText.slice(0, 40);
-                    const signAnnouncement = `พบ${matchedRule.type} ${shortSignContent}`;
+                    // ทำงานเฉพาะเมื่อตรวจพบคำสำคัญของ "ป้ายเตือน" หรือ "ป้ายรถเมล์" เท่านั้น ป้องกันอ่านมั่วจากวัตถุทั่วไป
+                    if (matchedRule) {
+                        const shortSignContent = cleanSignText.slice(0, 35);
+                        const signAnnouncement = `พบ${matchedRule.type} ${shortSignContent}`;
 
-                    latestDetectedSignText = `${matchedRule.icon} ${matchedRule.type}: ${shortSignContent}`;
-                    latestDetectedSignExpires = Date.now() + 5000;
+                        latestDetectedSignText = `${matchedRule.icon} ${matchedRule.type}: ${shortSignContent}`;
+                        latestDetectedSignExpires = Date.now() + 5500;
 
-                    document.getElementById('hazard-alert-text').innerText = signAnnouncement;
+                        document.getElementById('hazard-alert-text').innerText = signAnnouncement;
 
-                    const timeSinceLastFinish = Date.now() - lastSpeechFinishedAt;
-                    if (manualTrigger || (!isCurrentlySpeaking && signAnnouncement !== lastSpokenHazardText && timeSinceLastFinish > 1000)) {
-                        lastSpokenHazardText = signAnnouncement;
-                        if (matchedRule.danger && navigator.vibrate) {
-                            navigator.vibrate([160, 70, 160]);
+                        const timeSinceLastFinish = Date.now() - lastSpeechFinishedAt;
+                        if (manualTrigger || (!isCurrentlySpeaking && signAnnouncement !== lastSpokenHazardText && timeSinceLastFinish > 1000)) {
+                            lastSpokenHazardText = signAnnouncement;
+                            if (matchedRule.danger && navigator.vibrate) {
+                                navigator.vibrate([180, 80, 180]);
+                            }
+                            speakThaiText(signAnnouncement, manualTrigger);
                         }
-                        speakThaiText(signAnnouncement, manualTrigger);
                     }
                 }
             } catch (e) {
@@ -1208,7 +1442,8 @@
 
             const t0 = performance.now();
             try {
-                const predictions = await cocoModel.detect(video, 6, 0.45);
+                // เพิ่มค่าความมั่นใจขั้นต่ำเป็น 0.52 เพื่อความเสถียร ไม่แจ้งเตือนมั่ว
+                const predictions = await cocoModel.detect(video, 6, 0.52);
                 const elapsedMs = Math.round(performance.now() - t0);
                 scanStatus.innerText = `สแกน (${elapsedMs} ms) • พบ ${predictions.length} รายการ`;
 
@@ -1218,7 +1453,6 @@
                 ctx.clearRect(0, 0, overlay.width, overlay.height);
                 badgesContainer.innerHTML = '';
 
-                // แสดงป้ายข้อความที่อ่านได้ล่าสุด (ถ้ายังไม่หมดอายุ)
                 if (latestDetectedSignText && Date.now() < latestDetectedSignExpires) {
                     const signBadge = document.createElement('span');
                     signBadge.className = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-goldAccent/20 border border-goldAccent/45 text-xs text-goldAccent font-medium';
@@ -1315,7 +1549,7 @@
         }
 
         // =====================================================================
-        // 6. บอกสถานที่ปัจจุบัน & ถ่ายภาพสถานที่พร้อมระบุตำแหน่ง
+        // 7. บอกสถานที่ปัจจุบัน & ถ่ายภาพสถานที่พร้อมระบุตำแหน่ง
         // =====================================================================
         function triggerCameraCapture() {
             const input = document.getElementById('camera-photo-input');
@@ -1470,7 +1704,7 @@
         }
 
         // =====================================================================
-        // 7. ฟังก์ชันนำทาง (คำนวณระยะทาง ทิศทาง เสียงนำทางสด และ Google Maps)
+        // 8. ฟังก์ชันนำทาง (คำนวณระยะทาง ทิศทาง เสียงนำทางสด และ Google Maps)
         // =====================================================================
         function updateNavigationPanel(destLat, destLng, destName) {
             const distEl = document.getElementById('nav-distance-display');
@@ -1676,6 +1910,7 @@
             if (e.key === 'Escape') {
                 closeLocationModal();
                 closeHazardScannerModal();
+                closeSosEmergencyModal();
             }
         });
     </script>
