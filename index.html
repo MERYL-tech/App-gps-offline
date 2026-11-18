@@ -329,7 +329,7 @@
                 </div>
             </div>
 
-            <!-- เสียงไซเรนเรียกคนรอบข้าง -->
+            <!-- เสียงเรียกคนรอบข้าง -->
             <div class="mt-3">
                 <button type="button" id="btn-sos-beep" onclick="triggerLoudHelpAnnouncement()" 
                     aria-label="ส่งเสียงพูดขอความช่วยเหลือดังๆ ให้คนรอบข้างได้ยิน"
@@ -375,7 +375,7 @@
 
                 <div class="absolute top-3 left-3 px-3 py-1 rounded-full bg-obsidian/80 border border-borderLuxury text-[11px] text-goldAccent flex items-center gap-2">
                     <span class="w-2 h-2 rounded-full bg-tealAccent animate-pulse"></span>
-                    <span id="hazard-scan-status">กำลังเตรียมกล้องและตัวอ่านป้าย...</span>
+                    <span id="hazard-scan-status">กำลังเตรียมกล้องและระบบเสียง...</span>
                 </div>
             </div>
 
@@ -388,8 +388,11 @@
 
             <!-- กล่องข้อความเสียงเตือน -->
             <div class="mt-3 bg-surfaceElevated border border-goldAccent/35 rounded-2xl p-4" aria-live="assertive">
-                <span class="text-[11px] text-goldAccent font-medium block">เสียงแจ้งเตือนล่าสุด:</span>
-                <p id="hazard-alert-text" class="text-base font-semibold text-textPrimary mt-1 leading-snug">เส้นทางข้างหน้าปลอดภัย</p>
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] text-goldAccent font-medium">เสียงแจ้งเตือนล่าสุด:</span>
+                    <span id="speech-engine-status" class="text-[10px] text-tealAccent">🔊 เสียงพร้อมพูด</span>
+                </div>
+                <p id="hazard-alert-text" class="text-base font-semibold text-textPrimary mt-1 leading-snug">กำลังตรวจสอบเส้นทางข้างหน้า</p>
                 
                 <div class="mt-3 grid grid-cols-2 gap-2.5">
                     <button type="button" onclick="hapticTap(); speakCurrentHazard()" aria-label="ฟังเสียงเตือนซ้ำ"
@@ -403,7 +406,7 @@
                 </div>
             </div>
 
-            <!-- ปุ่มทดสอบจำลองป้ายเตือน ป้ายรถเมล์ และสิ่งกีดขวาง (ตัดป้ายสถานที่ออกแล้ว) -->
+            <!-- ปุ่มทดสอบจำลองป้ายเตือน ป้ายรถเมล์ และสิ่งกีดขวาง -->
             <div class="mt-3.5 pt-3 border-t border-borderLuxury">
                 <p class="text-[11px] text-textSecondary mb-2">ทดสอบเสียงเตือนป้ายเตือน ป้ายรถเมล์ และสิ่งกีดขวาง:</p>
                 <div class="grid grid-cols-2 gap-2 text-xs">
@@ -592,7 +595,7 @@
             { system: 'BRT', line: 'สาทร–ราชพฤกษ์', name: 'BRT ราชพฤกษ์', exit: 'ทางเชื่อมสกายวอล์ก BTS ตลาดพลู', lat: 13.71452, lng: 100.47681 }
         ];
 
-        // พจนานุกรมแปลวัตถุ สัตว์ ยานพาหนะ สัญญาณไฟ และป้ายหยุดจราจร (ไม่มีป้ายสถานที่)
+        // พจนานุกรมแปลวัตถุ สัตว์ ยานพาหนะ สัญญาณไฟ และป้ายหยุดจราจร
         const OBJECT_THAI_MAP = {
             'person': { th: 'คน', icon: '🚶', danger: true },
             'bicycle': { th: 'จักรยาน', icon: '🚲', danger: true },
@@ -629,7 +632,7 @@
             'scissors': { th: 'กรรไกร', icon: '✂️', danger: true }
         };
 
-        // กฎการจำแนกป้ายเฉพาะ "ป้ายเตือนต่างๆ" และ "ป้ายรถเมล์" เท่านั้น (ตัดป้ายสถานที่ออก)
+        // กฎจำแนกป้ายเฉพาะ "ป้ายเตือนต่างๆ" และ "ป้ายรถเมล์" เท่านั้น
         const STRICT_SIGN_RULES = [
             {
                 type: 'ป้ายเตือน',
@@ -638,8 +641,8 @@
                 keywords: [
                     'ระวัง', 'เตือน', 'ห้าม', 'อันตราย', 'ก่อสร้าง', 'พื้นลื่น', 'ทางข้าม',
                     'หยุด', 'ลดความเร็ว', 'ซ่อมทาง', 'ชำรุด', 'ต่างระดับ', 'ทางเบี่ยง',
-                    'ไฟฟ้าแรงสูง', 'เขตอันตราย', 'ห้ามเข้า', 'ทางตัน',
-                    'warning', 'caution', 'danger', 'stop', 'no entry', 'slippery', 'work'
+                    'ไฟฟ้า', 'เขตก่อสร้าง', 'ห้ามเข้า', 'ทางตัน', 'ลื่น',
+                    'warning', 'caution', 'danger', 'stop', 'no entry', 'slippery', 'work', 'slow'
                 ]
             },
             {
@@ -647,8 +650,8 @@
                 icon: '🚏',
                 danger: false,
                 keywords: [
-                    'ป้ายรถเมล์', 'ป้ายหยุดรถ', 'รถประจำทาง', 'รถเมล์', 'bus stop',
-                    'สาย', 'ขสมก', 'ท่ารถ', 'ปอ.', 'รถโดยสาร', 'ป้ายรถโดยสาร'
+                    'ป้ายรถเมล์', 'ป้ายหยุดรถ', 'รถประจำทาง', 'รถเมล์', 'bus stop', 'bus',
+                    'สาย', 'ขสมก', 'ท่ารถ', 'ปอ', 'รถโดยสาร', 'หยุดรถ'
                 ]
             }
         ];
@@ -660,17 +663,32 @@
         let signOcrInterval = null;
         let isScanningFrame = false;
         let isOcrRunning = false;
+
+        // ตัวแปรควบคุมระบบเสียงพูดแบบป้องกันค้างบนมือถือ (Mobile Anti-Stuck TTS)
         let isCurrentlySpeaking = false;
+        let speechStartedAt = 0;
         let lastSpeechFinishedAt = 0;
         let lastSpokenHazardText = "";
         let latestDetectedSignText = "";
         let latestDetectedSignExpires = 0;
+        let cachedThaiVoice = null;
 
         window.addEventListener('DOMContentLoaded', () => {
             renderTransitStationsList();
             preloadCocoSsdModel();
             silentWarmupGps();
+            loadThaiVoicePreference();
         });
+
+        function loadThaiVoicePreference() {
+            if (!('speechSynthesis' in window)) return;
+            const pickVoice = () => {
+                const voices = window.speechSynthesis.getVoices() || [];
+                cachedThaiVoice = voices.find(v => v.lang && v.lang.toLowerCase().includes('th')) || null;
+            };
+            pickVoice();
+            window.speechSynthesis.onvoiceschanged = pickVoice;
+        }
 
         function hapticTap() {
             if (navigator.vibrate) {
@@ -844,7 +862,6 @@
                     if (err && err.name === 'AbortError') return;
                 }
             }
-            // หากเบราว์เซอร์ไม่รองรับ Web Share API ให้คัดลอกข้อความให้อัตโนมัติ
             copySosEmergencyMessage();
         }
 
@@ -1016,7 +1033,7 @@
         }
 
         // =====================================================================
-        // 4. ระบบเสียงพูดภาษาไทย
+        // 4. ระบบเสียงพูดภาษาไทย (แก้บั๊กเสียงค้างบนมือถือด้วย Watchdog + Resume)
         // =====================================================================
         function toggleVoiceAutoSpeak() {
             hapticTap();
@@ -1040,9 +1057,13 @@
 
         function stopAllSpeech() {
             if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
+                try {
+                    window.speechSynthesis.cancel();
+                } catch (e) {}
             }
             isCurrentlySpeaking = false;
+            const badge = document.getElementById('speech-engine-status');
+            if (badge) badge.innerText = '🔊 เสียงพร้อมพูด';
         }
 
         function speakThaiText(text, interruptCurrent = false) {
@@ -1051,47 +1072,80 @@
                 if (!isAutoSpeakEnabled && !interruptCurrent) return resolve();
                 if (!('speechSynthesis' in window)) return resolve();
 
+                // ป้องกันตัวแปร isCurrentlySpeaking ค้างบนเบราว์เซอร์มือถือหากผ่านไปเกิน 3.5 วินาที
+                if (isCurrentlySpeaking && (Date.now() - speechStartedAt > 3500)) {
+                    isCurrentlySpeaking = false;
+                    try { window.speechSynthesis.cancel(); } catch (e) {}
+                }
+
                 if (isCurrentlySpeaking && !interruptCurrent) {
                     return resolve();
                 }
 
                 if (interruptCurrent) {
-                    window.speechSynthesis.cancel();
+                    try { window.speechSynthesis.cancel(); } catch (e) {}
+                    isCurrentlySpeaking = false;
                 }
+
+                // ปลุก speechSynthesis บน Chrome/Safari มือถือที่ชอบหยุดชั่วคราวเอง
+                try {
+                    if (window.speechSynthesis.paused) {
+                        window.speechSynthesis.resume();
+                    }
+                } catch (e) {}
 
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'th-TH';
-                utterance.rate = 1.12;
+                if (cachedThaiVoice) {
+                    utterance.voice = cachedThaiVoice;
+                }
+                utterance.rate = 1.08;
                 utterance.pitch = 1.0;
+                utterance.volume = 1.0;
+
+                const statusBadge = document.getElementById('speech-engine-status');
+                let settled = false;
+                const finishSpeech = () => {
+                    if (settled) return;
+                    settled = true;
+                    isCurrentlySpeaking = false;
+                    lastSpeechFinishedAt = Date.now();
+                    if (statusBadge) statusBadge.innerText = '🔊 เสียงพร้อมพูด';
+                    resolve();
+                };
+
+                // Watchdog Timer 4 วินาที ป้องกันเบราว์เซอร์มือถือลืมเรียก onend
+                const safetyTimer = setTimeout(finishSpeech, 4000);
 
                 utterance.onstart = () => {
                     isCurrentlySpeaking = true;
+                    speechStartedAt = Date.now();
+                    if (statusBadge) statusBadge.innerText = '🗣️ กำลังอ่านออกเสียง...';
                 };
                 utterance.onend = () => {
-                    isCurrentlySpeaking = false;
-                    lastSpeechFinishedAt = Date.now();
-                    resolve();
+                    clearTimeout(safetyTimer);
+                    finishSpeech();
                 };
                 utterance.onerror = () => {
-                    isCurrentlySpeaking = false;
-                    lastSpeechFinishedAt = Date.now();
-                    resolve();
+                    clearTimeout(safetyTimer);
+                    finishSpeech();
                 };
 
-                window.speechSynthesis.speak(utterance);
+                isCurrentlySpeaking = true;
+                speechStartedAt = Date.now();
+                if (statusBadge) statusBadge.innerText = '🗣️ กำลังอ่านออกเสียง...';
 
-                if (navigator.onLine) {
-                    fetch('/api/tts', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ text })
-                    }).catch(() => {});
+                try {
+                    window.speechSynthesis.speak(utterance);
+                } catch (e) {
+                    clearTimeout(safetyTimer);
+                    finishSpeech();
                 }
             });
         }
 
         // =====================================================================
-        // 5. ระบบสั่งงานด้วยเสียงพูดภาษาไทย (รองรับชื่อสถานที่, รถไฟฟ้า, ส่องกล้อง, SOS)
+        // 5. ระบบสั่งงานด้วยเสียงพูดภาษาไทย
         // =====================================================================
         async function searchAndNavigateToSpokenPlace(placeName) {
             setStatus(`กำลังค้นหาสถานที่ "${placeName}"...`);
@@ -1171,25 +1225,21 @@
                     .replace(/^(นำทางไปที่|นำทางไป|พาไปที่|พาไป|ไปที่|ค้นหาสถานที่|ค้นหา|บอกพิกัด|บอกสถานที่|เช็คพิกัด)\s*/g, '')
                     .trim() || rawTranscript;
 
-                // 0. คำสั่งฉุกเฉิน SOS
                 if (rawTranscript.includes('ช่วยด้วย') || rawTranscript.includes('ขอความช่วยเหลือ') || rawTranscript.toLowerCase().includes('sos') || rawTranscript.includes('ฉุกเฉิน')) {
                     openSosEmergencyModal();
                     return;
                 }
 
-                // 1. คำสั่งเปิดกล้องส่องทาง
                 if (rawTranscript.includes('กล้อง') || rawTranscript.includes('สิ่งกีดขวาง') || rawTranscript.includes('ส่องทาง') || rawTranscript.includes('อ่านป้าย')) {
                     openHazardScannerModal();
                     return;
                 }
 
-                // 2. คำสั่งถ่ายภาพสถานที่
                 if (rawTranscript.includes('ถ่ายรูป') || rawTranscript.includes('ถ่ายภาพ')) {
                     triggerCameraCapture();
                     return;
                 }
 
-                // 3. คำสั่งเช็กตำแหน่งปัจจุบัน
                 if (
                     rawTranscript === 'สถานที่ปัจจุบัน' ||
                     rawTranscript === 'บอกสถานที่' ||
@@ -1200,13 +1250,11 @@
                     return;
                 }
 
-                // 4. คำสั่งหาสถานีรถไฟฟ้าใกล้ฉัน
                 if (rawTranscript.includes('รถไฟฟ้าใกล้ฉัน') || rawTranscript.includes('สถานีใกล้ฉัน')) {
                     findNearestTransitStation();
                     return;
                 }
 
-                // 5. ตรวจสอบชื่อสถานีรถไฟฟ้า BTS / MRT / MRTA / BRT
                 const isExplicitTransitKeyword = /^(bts|mrt|mrta|brt|บีทีเอส|เอ็มอาร์ที|บีอาร์ที|สถานี)/i.test(cleanedText);
                 const normalizedSpoken = cleanedText
                     .replace(/^(บีทีเอส|bts)\s*/i, 'BTS ')
@@ -1230,7 +1278,6 @@
                     return;
                 }
 
-                // 6. ค้นหาชื่อสถานที่ทั่วไปที่ผู้ใช้พูด
                 searchAndNavigateToSpokenPlace(cleanedText);
             };
 
@@ -1251,7 +1298,7 @@
         }
 
         // =====================================================================
-        // 6. โหมดส่องกล้องเตือนสิ่งกีดขวาง & อ่านป้ายเตือนต่างๆ และป้ายรถเมล์ (เสถียรขึ้น)
+        // 6. โหมดส่องกล้องเตือนสิ่งกีดขวาง & อ่านป้ายเตือนต่างๆ และป้ายรถเมล์ (แก้บั๊กไม่อ่านออกเสียง)
         // =====================================================================
         async function openHazardScannerModal() {
             const modal = document.getElementById('hazard-scanner-modal');
@@ -1259,16 +1306,26 @@
             const noCamMsg = document.getElementById('hazard-no-cam-msg');
             const scanStatus = document.getElementById('hazard-scan-status');
 
+            // 1. บังคับเปิดเสียงอัตโนมัติทันทีเมื่อกดเข้าโหมดส่องกล้อง
+            if (!isAutoSpeakEnabled) {
+                isAutoSpeakEnabled = true;
+                document.getElementById('tts-icon').innerText = '🔊';
+                document.getElementById('tts-label').innerText = 'เปิดเสียง';
+            }
+
             modal.classList.remove('hidden');
             modal.classList.add('flex');
             noCamMsg.classList.add('hidden');
             scanStatus.innerText = 'กำลังเปิดกล้อง...';
             lastSpokenHazardText = "";
             latestDetectedSignText = "";
+            isCurrentlySpeaking = false;
 
-            speakThaiText('เปิดกล้องเตือนสิ่งกีดขวางและป้ายเตือนแล้ว', true);
+            // ปลดล็อก Audio บนมือถือด้วย User Gesture ทันที
+            await speakThaiText('เปิดกล้องเตือนสิ่งกีดขวางแล้ว', true);
 
             if (!cocoModel) {
+                scanStatus.innerText = 'กำลังโหลดตัวตรวจจับวัตถุ...';
                 await preloadCocoSsdModel();
             }
 
@@ -1280,19 +1337,22 @@
                 video.srcObject = hazardStream;
 
                 video.onloadeddata = () => {
-                    scanStatus.innerText = 'สแกนวัตถุและป้ายเตือนพร้อมใช้งาน';
+                    scanStatus.innerText = 'กำลังสแกนและอ่านออกเสียงอัตโนมัติ';
+                    // สแกนทันทีรอบแรก
+                    runFastHazardDetection(true);
+
                     hazardScanInterval = setInterval(() => {
                         runFastHazardDetection(false);
-                    }, 650);
+                    }, 700);
 
-                    // สแกนอ่านป้ายเตือนและป้ายรถเมล์ทุกๆ 3.2 วินาที (ให้เวลาประมวลผลภาพคมชัดไม่ค้าง)
                     signOcrInterval = setInterval(() => {
                         runStabilizedSignOcr(false);
-                    }, 3200);
+                    }, 2800);
                 };
             } catch (err) {
                 noCamMsg.classList.remove('hidden');
                 scanStatus.innerText = 'โหมดจำลองสถานการณ์';
+                speakThaiText('ไม่พบกล้อง สามารถกดปุ่มจำลองด้านล่างเพื่อฟังเสียงเตือนครับ', true);
             }
         }
 
@@ -1319,20 +1379,19 @@
         }
 
         async function scanSignAndObjectsNow() {
+            stopAllSpeech();
             await runFastHazardDetection(true);
             await runStabilizedSignOcr(true);
         }
 
-        // ฟังก์ชันปรับภาพขาวดำความคมชัดสูงก่อนส่งเข้า OCR เพื่อให้อ่านป้ายเตือนและป้ายรถเมล์ได้แม่นยำขึ้นมาก
         function captureHighContrastSignCanvas(video) {
             const vw = video.videoWidth || 640;
             const vh = video.videoHeight || 480;
 
-            // ครอปเฉพาะโซนตรงกลางของกล้อง (ลดสิ่งรบกวนรอบขอบภาพ)
-            const cropX = Math.round(vw * 0.12);
-            const cropY = Math.round(vh * 0.12);
-            const cropW = Math.round(vw * 0.76);
-            const cropH = Math.round(vh * 0.76);
+            const cropX = Math.round(vw * 0.10);
+            const cropY = Math.round(vh * 0.10);
+            const cropW = Math.round(vw * 0.80);
+            const cropH = Math.round(vh * 0.80);
 
             const targetW = 480;
             const targetH = Math.round((cropH / cropW) * targetW);
@@ -1343,10 +1402,9 @@
             const ctx = canvas.getContext('2d');
             ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, targetW, targetH);
 
-            // แปลงเป็น Grayscale + เพิ่ม Contrast ให้ตัวหนังสือบนป้ายเด่นชัด
             const imgData = ctx.getImageData(0, 0, targetW, targetH);
             const data = imgData.data;
-            const contrastFactor = 1.45;
+            const contrastFactor = 1.4;
             for (let i = 0; i < data.length; i += 4) {
                 const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
                 let adjusted = ((gray - 128) * contrastFactor) + 128;
@@ -1359,7 +1417,6 @@
             return canvas;
         }
 
-        // อ่านเฉพาะ "ป้ายเตือนต่างๆ" และ "ป้ายรถเมล์" เท่านั้น พร้อมกรองความมั่นใจไม่ให้อ่านมั่ว
         async function runStabilizedSignOcr(manualTrigger = false) {
             const video = document.getElementById('hazard-video');
             if (!video || !video.srcObject || video.readyState < 2) return;
@@ -1377,19 +1434,16 @@
                     : 0;
                 const rawText = (result && result.data && result.data.text) ? result.data.text : '';
 
-                // กรองเฉพาะอักขระไทย อังกฤษ ตัวเลข ที่มีโครงสร้างคำชัดเจน
                 const cleanSignText = rawText
                     .replace(/[^\u0E00-\u0E7Fa-zA-Z0-9\s\-\/\.]/g, ' ')
                     .replace(/\s+/g, ' ')
                     .trim();
 
-                // ต้องมีความมั่นใจ >= 48% (หรือกดสแกนเอง >= 35%) และข้อความยาวอย่างน้อย 3 ตัวอักษร
-                const minConfidence = manualTrigger ? 35 : 48;
-                if (confidence >= minConfidence && cleanSignText.length >= 3) {
+                const minConfidence = manualTrigger ? 25 : 40;
+                if (confidence >= minConfidence && cleanSignText.length >= 2) {
                     const lowerText = cleanSignText.toLowerCase();
                     let matchedRule = null;
 
-                    // ตรวจสอบเฉพาะป้ายเตือนต่างๆ และป้ายรถเมล์เท่านั้น (ไม่มีป้ายสถานที่)
                     for (const rule of STRICT_SIGN_RULES) {
                         if (rule.keywords.some(kw => lowerText.includes(kw))) {
                             matchedRule = rule;
@@ -1397,7 +1451,6 @@
                         }
                     }
 
-                    // ทำงานเฉพาะเมื่อตรวจพบคำสำคัญของ "ป้ายเตือน" หรือ "ป้ายรถเมล์" เท่านั้น ป้องกันอ่านมั่วจากวัตถุทั่วไป
                     if (matchedRule) {
                         const shortSignContent = cleanSignText.slice(0, 35);
                         const signAnnouncement = `พบ${matchedRule.type} ${shortSignContent}`;
@@ -1408,7 +1461,7 @@
                         document.getElementById('hazard-alert-text').innerText = signAnnouncement;
 
                         const timeSinceLastFinish = Date.now() - lastSpeechFinishedAt;
-                        if (manualTrigger || (!isCurrentlySpeaking && signAnnouncement !== lastSpokenHazardText && timeSinceLastFinish > 1000)) {
+                        if (manualTrigger || (!isCurrentlySpeaking && (signAnnouncement !== lastSpokenHazardText || timeSinceLastFinish > 3500))) {
                             lastSpokenHazardText = signAnnouncement;
                             if (matchedRule.danger && navigator.vibrate) {
                                 navigator.vibrate([180, 80, 180]);
@@ -1442,8 +1495,7 @@
 
             const t0 = performance.now();
             try {
-                // เพิ่มค่าความมั่นใจขั้นต่ำเป็น 0.52 เพื่อความเสถียร ไม่แจ้งเตือนมั่ว
-                const predictions = await cocoModel.detect(video, 6, 0.52);
+                const predictions = await cocoModel.detect(video, 6, 0.45);
                 const elapsedMs = Math.round(performance.now() - t0);
                 scanStatus.innerText = `สแกน (${elapsedMs} ms) • พบ ${predictions.length} รายการ`;
 
@@ -1501,7 +1553,7 @@
                     const timeSinceLastFinish = Date.now() - lastSpeechFinishedAt;
                     const isNewAlert = shortAlertText !== lastSpokenHazardText;
 
-                    if (manualTrigger || (!isCurrentlySpeaking && (isNewAlert ? timeSinceLastFinish > 900 : timeSinceLastFinish > 3500))) {
+                    if (manualTrigger || (!isCurrentlySpeaking && (isNewAlert ? timeSinceLastFinish > 600 : timeSinceLastFinish > 3200))) {
                         lastSpokenHazardText = shortAlertText;
                         if (dangerItems.length > 0 && navigator.vibrate) {
                             navigator.vibrate([140, 60, 140]);
@@ -1512,7 +1564,7 @@
                     badgesContainer.innerHTML = '<span class="text-xs text-tealAccent">เส้นทางโล่ง ปลอดภัย</span>';
                     document.getElementById('hazard-alert-text').innerText = 'เส้นทางข้างหน้าปลอดภัย';
                     if (manualTrigger) {
-                        speakThaiText('เส้นทางปลอดภัย', true);
+                        speakThaiText('เส้นทางข้างหน้าปลอดภัย', true);
                     }
                 }
             } catch (e) {
